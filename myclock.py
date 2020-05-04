@@ -1,4 +1,3 @@
-﻿# SI VOUS N'ETES PAS SIMON ET QUE VOUS LISEZ CE CODE, SACHEZ QUE CE N'EST PAS DU BEAU CODE
 # coding: utf-8
 
 class ClockSettings(object):
