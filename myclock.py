@@ -1,3 +1,4 @@
+# SI VOUS N'ETES PAS SIMON ET QUE VOUS LISEZ CE CODE, SACHEZ QUE CE N'EST PAS DU BEAU CODE
 # coding: utf-8
 
 class ClockSettings(object):
@@ -7,10 +8,10 @@ class ClockSettings(object):
 	DEBUG_LOADING_ANIMATION = False
 	ANIMATION_DURATION_SECONDS = 2.5
 	BACKGROUND_COLOR = [0, 0, 0]
-	FRAMERATE = 60
+	FRAMERATE = 8 # None = unlimited fps
 	FONT = "moonget.ttf"
 	FULLSCREEN = False
-	WINDOWED_WIDTH = 1280
+	WINDOWED_WIDTH = 480
 	ENABLE_LOADING_ANIMATION = True
 	RASPI2FB_CHECK = False
 	
@@ -38,15 +39,15 @@ def show_loading_screen(largeur, hauteur):
 	loading_master["bg"] = "black"
 	canvas = tk.Canvas(loading_master, width=70 * size_mult, height=70 * size_mult, highlightthickness=0)
 	canvas.configure(background='black')
-	canvas.pack(side=tk.BOTTOM, pady=20 * size_mult)
+	canvas.pack(side=tk.BOTTOM, pady=hauteur * 0.1)
 	loading_arc_coordinates = 5 * size_mult, 5 * size_mult, 65 * size_mult, 65 * size_mult
 	arc_extent = 0
 	start_position = 0
 	loading_arc = canvas.create_arc(loading_arc_coordinates, start=start_position, extent=arc_extent, width=5*size_mult, outline="cyan2", style="arc")
 	loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white", bg="black")
 	loading_label.place(x=(largeur/2), y=(hauteur/2) - 20 * size_mult, anchor='center')
-	status_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text=status_loading_text, fg="white", bg="black")
-	status_label.place(x=(largeur/2), y=(hauteur/2) + 20 * size_mult, anchor='center')
+	status_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text=status_loading_text, fg="white", bg="black", wraplength=largeur)
+	status_label.place(x=(largeur/2), y=(hauteur/2), anchor=tk.N)
 	loading_master.lift()
 	last_start_position = 210
 	quick_lap = False
@@ -103,8 +104,11 @@ if ClockSettings.FULLSCREEN:
 	largeur = loading_master.winfo_screenwidth()
 	hauteur = loading_master.winfo_screenheight()
 	
-	fausse_largeur = hauteur * 1.5
-	size_mult = fausse_largeur/480.0
+	if largeur > hauteur:
+		fausse_largeur = hauteur * 1.5
+		size_mult = fausse_largeur/480.0
+	else:
+		size_mult = hauteur/480.0
 	
 else:
 	largeur = ClockSettings.WINDOWED_WIDTH
@@ -121,7 +125,7 @@ loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text=
 loading_label.place(x=(largeur/2), y=(hauteur/2) - 20 * size_mult if ClockSettings.ENABLE_LOADING_ANIMATION else hauteur/2, anchor='center')
 if ClockSettings.ENABLE_LOADING_ANIMATION:
 	status_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text=status_loading_text, fg="white", bg="black")
-	status_label.place(x=(largeur/2), y=(hauteur/2) + 20 * size_mult, anchor='center')
+	status_label.place(x=(largeur/2), y=(hauteur/2), anchor=tk.N)
 loading_master.update()
 
 
@@ -273,7 +277,7 @@ def get_data(retour_thread, get_forecast=False):
 				pourcentage_pluie = " "
 					
 			false_alerts = ["Aucune veille ou alerte",
-							u"BULLETIN MÉTÉOROLOGIQUE SPÉCIAL",
+							u"BULLETIN",
 							u"TERMINÉ"]
 							
 			# S'il y a plusieurs alertes, on prend la premiere qui est vraie
@@ -660,10 +664,18 @@ eloignement_minutes = 45 * size_mult
 
 eloignement_heures = 80 * size_mult
 
-rect_couleurs_secondes = [(largeur/2)-(hauteur/2)+eloignement_secondes, eloignement_secondes, hauteur-eloignement_secondes*2, hauteur-eloignement_secondes*2]
-rect_arc_secondes = [(largeur/2)-(hauteur/2)+eloignement_secondes-2, eloignement_secondes-2, hauteur-((eloignement_secondes-2)*2), hauteur-((eloignement_secondes-2)*2)]
-rect_arc_minutes = [(largeur/2)-(hauteur/2)+eloignement_minutes, eloignement_minutes, hauteur - eloignement_minutes*2, hauteur - eloignement_minutes * 2]
-rect_arc_heures = [(largeur/2)-(hauteur/2)+eloignement_heures, eloignement_heures, hauteur - eloignement_heures*2, hauteur - eloignement_heures * 2]
+if largeur > hauteur:
+	rect_couleurs_secondes = [(largeur/2)-(hauteur/2)+eloignement_secondes, eloignement_secondes, hauteur-eloignement_secondes*2, hauteur-eloignement_secondes*2]
+	rect_arc_secondes = [(largeur/2)-(hauteur/2)+eloignement_secondes-2, eloignement_secondes-2, hauteur-((eloignement_secondes-2)*2), hauteur-((eloignement_secondes-2)*2)]
+	rect_arc_minutes = [(largeur/2)-(hauteur/2)+eloignement_minutes, eloignement_minutes, hauteur - eloignement_minutes*2, hauteur - eloignement_minutes * 2]
+	rect_arc_heures = [(largeur/2)-(hauteur/2)+eloignement_heures, eloignement_heures, hauteur - eloignement_heures*2, hauteur - eloignement_heures * 2]
+else:
+	rect_couleurs_secondes = [eloignement_secondes, (hauteur/2)-(largeur/2)+eloignement_secondes, largeur-eloignement_secondes*2, largeur-eloignement_secondes*2]
+	rect_arc_secondes = [eloignement_secondes-2, (hauteur/2)-(largeur/2)+eloignement_secondes-2, largeur-((eloignement_secondes-2)*2), largeur-((eloignement_secondes-2)*2)]
+	rect_arc_minutes = [eloignement_minutes, (hauteur/2)-(largeur/2)+eloignement_minutes, largeur - eloignement_minutes*2, largeur - eloignement_minutes * 2]
+	rect_arc_heures = [eloignement_heures, (hauteur/2)-(largeur/2)+eloignement_heures, largeur - eloignement_heures*2, largeur - eloignement_heures * 2]
+
+
 
 notification_couleur_noire = False
 
@@ -770,8 +782,8 @@ raindrop_list = []
 notification_active = False
 
 notifications = {"fps": 4,
-				 "12:00": [u"LUNCH", "TIME"],
-				 "15:59": [u"SEE YOU", "TOMORROW"]}
+				 "10:00": ["BANANA", "TIME"],
+				 "12:00": [u"À LA", "BOUFFE"]}
 
 if ClockSettings.DEBUG_MODE:
 	retour_thread['fetching_animation_text'] = None
@@ -790,9 +802,6 @@ if not ClockSettings.ENABLE_LOADING_ANIMATION:
 startup_complete = True
 
 while en_fonction:
-
-	maintenant = datetime.datetime.now()
-
 	debut_frame = time.time()
 	
 	for event in pygame.event.get():
@@ -834,6 +843,8 @@ while en_fonction:
 	if not toggle_menu:
 	
 		temps = time.strftime("%H:%M")
+		
+		maintenant = datetime.datetime.now()
 
 		heure = maintenant.hour
 
@@ -1137,7 +1148,7 @@ while en_fonction:
 		# Countdown timer
 		if ClockSettings.ENABLE_COUNTDOWN_TIMER:
 			# Countdown normal
-			temps_restant = datetime.datetime(2020, 5, 28, 20, 00) - maintenant
+			temps_restant = datetime.datetime(2020, 9, 24, 8, 00) - maintenant
 			# Fin de journée
 			# temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 			
@@ -1162,11 +1173,11 @@ while en_fonction:
 			ecran.blit(texte, texte_rect)
 			
 			# Disco
-			# seconde_a_couleur(seconde_precise, couleur_random=True)
+			# couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
 			# Smooth
-			# seconde_a_couleur(seconde_precise, inverser=True)
+			couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
 			
-			texte = font_17.render(u"Release maybe :3", 1, couleur_titre_countdown, couleur_fond)
+			texte = font_17.render(u"Chalet :D", 1, couleur_titre_countdown, couleur_fond)
 			texte_top = texte_rect.top
 			texte_rect = texte.get_rect()
 			texte_rect.right = largeur - (2 * size_mult)
