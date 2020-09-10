@@ -4,7 +4,7 @@
 class ClockSettings(object):
 
 	ENABLE_COUNTDOWN_TIMER = True
-	DEBUG_MODE = False
+	DEBUG_MODE = True
 	DEBUG_LOADING_ANIMATION = False
 	ANIMATION_DURATION_SECONDS = 2.5
 	BACKGROUND_COLOR = [0, 0, 0]
@@ -174,7 +174,7 @@ def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
 def get_data(retour_thread, get_forecast=False):
 	if ClockSettings.DEBUG_MODE:
 		print("SKIPPING REQUESTS FOR DEBUG")
-		# retour_thread['weather_animation'] = 'neige'
+		# retour_thread['weather_animation'] = 'vergla'
 		retour_thread['thread_en_cours'] = False
 		return True
 	
@@ -506,16 +506,16 @@ def get_snowflake():
 	mult_five = int(5 * size_mult)
 	return {'pos_y': -mult_five,
 			'pos_x': randint(mult_five, largeur - mult_five),
-			'vit_y': randint(hauteur/10, hauteur/7),
-			'vit_x': randint(-largeur/15, largeur/15)}
+			'vit_y': randint(hauteur//10, hauteur//7),
+			'vit_x': randint(-largeur//15, largeur//15)}
 			
 
 def get_raindrop():
-	vit_y = randint(hauteur/2, hauteur)
+	vit_y = randint(hauteur//2, hauteur)
 	return {'pos_y': int(-randint(10, 50) * size_mult),
-			'pos_x': randint(-largeur/4, largeur),
+			'pos_x': randint(-largeur//4, largeur),
 			'vit_y': vit_y,
-			'vit_x': vit_y/3}	
+			'vit_x': vit_y//3}	
 	
 
 def render_snowing():
