@@ -3,7 +3,7 @@ A Python clock made using Pygame
 
 This is a personnal projet I made for myself and after some demands for the source code, I have uploaded it here.
 
-The code is still only for Python 2.7, about 1/4 of the variable names are in french and the other 3/4 are in english.
+The code is not very pretty, especially because about 1/4 of the variable names are in french and the other 3/4 are in english.
 
 Not too much cleanup has been made before uploading, there are still a lot of weird workarounds and magic numbers in there, be prepared.
 

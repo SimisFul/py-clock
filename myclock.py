@@ -8,7 +8,7 @@ class ClockSettings(object):
 	DEBUG_LOADING_ANIMATION = False
 	ANIMATION_DURATION_SECONDS = 2.5
 	BACKGROUND_COLOR = [0, 0, 0]
-	FRAMERATE = 8 # None = unlimited fps
+	FRAMERATE = 7 # None = unlimited fps
 	FONT = "moonget.ttf"
 	FULLSCREEN = False
 	WINDOWED_WIDTH = 480
@@ -39,7 +39,7 @@ def show_loading_screen(largeur, hauteur):
 	loading_master["bg"] = "black"
 	canvas = tk.Canvas(loading_master, width=70 * size_mult, height=70 * size_mult, highlightthickness=0)
 	canvas.configure(background='black')
-	canvas.pack(side=tk.BOTTOM, pady=hauteur * 0.1)
+	canvas.pack(side=tk.BOTTOM, pady=hauteur * 0.08)
 	loading_arc_coordinates = 5 * size_mult, 5 * size_mult, 65 * size_mult, 65 * size_mult
 	arc_extent = 0
 	start_position = 0
@@ -90,9 +90,9 @@ def show_loading_screen(largeur, hauteur):
 	loading_master.destroy()
 # ---------------------------------------------------------------------------------------- #
 
-print "The clock has started running!"
+print("The clock has started running!")
 
-import Tkinter as tk
+import tkinter as tk
 
 status_loading_text = "Modules"
 startup_complete = False
@@ -114,6 +114,9 @@ else:
 	largeur = ClockSettings.WINDOWED_WIDTH
 	hauteur = (320 * largeur)/480
 	size_mult = largeur/480.0
+
+largeur = int(largeur)
+hauteur = int(hauteur)
 resolution = largeur, hauteur
 
 # Juste le texte pour afficher le plus rapidement possible
@@ -137,9 +140,9 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 
 import os
 os.system('cls' if os.name == 'nt' else 'clear')
-print "Initializing..."
+print("Initializing...")
 
-import math, datetime, urllib2, xmltodict, json, ssl, sys
+import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, sys
 from random import randint
 
 old_stdout = sys.stdout
@@ -170,7 +173,7 @@ def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
 	
 def get_data(retour_thread, get_forecast=False):
 	if ClockSettings.DEBUG_MODE:
-		print "SKIPPING REQUESTS FOR DEBUG"
+		print("SKIPPING REQUESTS FOR DEBUG")
 		# retour_thread['weather_animation'] = 'neige'
 		retour_thread['thread_en_cours'] = False
 		return True
@@ -180,7 +183,7 @@ def get_data(retour_thread, get_forecast=False):
 	else:
 		retour_thread['thread_en_cours'] = True
 		
-	print "Getting data"
+	print("Getting data")
 	
 	retour_thread['fetching_animation_text'] = None
 	
@@ -206,9 +209,9 @@ def get_data(retour_thread, get_forecast=False):
 	
 	if get_forecast:
 		try:
-			print "Requesting forecast"
+			print("Requesting forecast")
 			
-			retour_thread['detailed_info'] = u"Rafraîchissement..."
+			retour_thread['detailed_info'] = "Rafraîchissement..."
 			retour_thread['temperature'][0] = None
 			retour_thread['temperature'][1]['couleur'] = couleur_fond_inverse
 			retour_thread['temperature'][1]['wiggle'] = 0
@@ -216,7 +219,7 @@ def get_data(retour_thread, get_forecast=False):
 			if retour_thread['pourcent_pluie'] != " ":
 				retour_thread['pourcent_pluie'] = None
 			
-			xml_response = urllib2.urlopen('https://weather.gc.ca/rss/city/qc-133_f.xml', timeout=60, context=ssl_context)
+			xml_response = urllib.request.urlopen('https://weather.gc.ca/rss/city/qc-133_f.xml', timeout=60, context=ssl_context)
 			dict_data = xmltodict.parse(xml_response.read())
 			xml_response.close()
 			
@@ -258,7 +261,7 @@ def get_data(retour_thread, get_forecast=False):
 				
 				detailed_info = detailed_info[:-2]
 			else:
-				detailed_info = u'Conditions indisponibles'
+				detailed_info = 'Conditions indisponibles'
 			
 			
 			for animation in weather_animations:
@@ -277,8 +280,8 @@ def get_data(retour_thread, get_forecast=False):
 				pourcentage_pluie = " "
 					
 			false_alerts = ["Aucune veille ou alerte",
-							u"BULLETIN",
-							u"TERMINÉ"]
+							"BULLETIN",
+							"TERMINÉ"]
 							
 			# S'il y a plusieurs alertes, on prend la premiere qui est vraie
 			while forecast_pos > 0:
@@ -286,7 +289,7 @@ def get_data(retour_thread, get_forecast=False):
 								
 				# Si aucune des fausses alertes ne correspond a l'alerte en cours, c'est une vraie alerte
 				if not any(alert.upper() in alert_title.upper() for alert in false_alerts):
-					detailed_info = dict_data['feed']['entry'][forecast_pos - 1]['title'].replace(u', Québec', '')
+					detailed_info = dict_data['feed']['entry'][forecast_pos - 1]['title'].replace(', Québec', '')
 					detailed_info = detailed_info.replace('EN VIGUEUR', '').rstrip()
 					forecast_pos = 0
 				else:
@@ -302,7 +305,7 @@ def get_data(retour_thread, get_forecast=False):
 			retour_thread['pourcent_pluie'] = pourcentage_pluie
 			
 		except Exception as erreur:
-			print erreur
+			print(erreur)
 			retour_thread['detailed_info'] = str(erreur)
 			retour_thread['temperature'][0] = "Erreur"
 			retour_thread['temperature'][1]['couleur'] = couleur_fond_inverse
@@ -320,51 +323,51 @@ def get_data(retour_thread, get_forecast=False):
 			return True
 
 	try:
-		print "Requesting litecoin value"
+		print("Requesting litecoin value")
 		retour_thread['valeur_litecoin'] = None
-		response = urllib2.urlopen("https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=CAD", timeout=60)
+		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=CAD", timeout=60)
 		the_page = response.read()
-		data = json.loads(the_page)
+		data = json.loads(the_page.decode('utf-8'))
 		valeur_float_litecoin = data['CAD']
 		valeur_litecoin = str(round(valeur_float_litecoin, 2)) + "$"
 		retour_thread['valeur_litecoin'] = valeur_litecoin
 		valeur_litecoin_actuelle = valeur_litecoin
 		time.sleep(0.1)
 		
-		print "Requesting ethereum value"
+		print("Requesting ethereum value")
 		retour_thread['valeur_ethereum'] = None
-		response = urllib2.urlopen("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=CAD", timeout=60)
+		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=CAD", timeout=60)
 		the_page = response.read()
-		data = json.loads(the_page)
+		data = json.loads(the_page.decode('utf-8'))
 		valeur_float_ethereum = data['CAD']
 		valeur_ethereum = str(round(valeur_float_ethereum, 2)) + "$"
 		retour_thread['valeur_ethereum'] = valeur_ethereum
 		valeur_ethereum_actuelle = valeur_ethereum
 		time.sleep(0.1)
 		
-		print "Requesting bitcoin cash value"
+		print("Requesting bitcoin cash value")
 		retour_thread['valeur_bitcoin_cash'] = None
-		response = urllib2.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BCH&tsyms=CAD", timeout=60)
+		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BCH&tsyms=CAD", timeout=60)
 		the_page = response.read()
-		data = json.loads(the_page)
+		data = json.loads(the_page.decode('utf-8'))
 		valeur_float_bitcoin_cash = data['CAD']
 		valeur_bitcoin_cash = str(round(valeur_float_bitcoin_cash, 2)) + "$"
 		retour_thread['valeur_bitcoin_cash'] = valeur_bitcoin_cash
 		valeur_bitcoin_cash_actuelle = valeur_bitcoin_cash
 		time.sleep(0.1)
 		
-		print "Requesting bitcoin value"
+		print("Requesting bitcoin value")
 		retour_thread['valeur_bitcoin'] = None
-		response = urllib2.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=CAD", timeout=60)
+		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=CAD", timeout=60)
 		the_page = response.read()
-		data = json.loads(the_page)
+		data = json.loads(the_page.decode('utf-8'))
 		valeur_float_bitcoin = data['CAD']
 		valeur_bitcoin = str(round(valeur_float_bitcoin, 2)) + "$"
 		retour_thread['valeur_bitcoin'] = valeur_bitcoin
 		valeur_bitcoin_actuelle = valeur_bitcoin
 		
 	except Exception as erreur:
-		print erreur
+		print(erreur)
 		retour_thread['valeur_litecoin'] = "Erreur"
 		retour_thread['valeur_ethereum'] = "Erreur"
 		retour_thread['valeur_bitcoin_cash'] = "Erreur"
@@ -380,14 +383,14 @@ def get_data(retour_thread, get_forecast=False):
 	
 	retour_thread['thread_en_cours'] = False
 	
-	print "Done getting data"
+	print("Done getting data")
 	
 	return True
 
 
 def ping_this(url):
 	try:
-		urllib2.urlopen(url, timeout=30)
+		urllib.request.urlopen(url, timeout=30)
 		return True
 	except Exception:
 		return False
@@ -398,7 +401,7 @@ def attempt_reconnection():
 	
 	delais_attente = 10
 	while not internet_access:
-		retour_thread['fetching_animation_text'] = u"Erreur"
+		retour_thread['fetching_animation_text'] = "Erreur"
 		os.system("sudo ifconfig wlan0 down")
 		os.system("sudo ifconfig wlan0 up")
 
@@ -442,7 +445,7 @@ def get_date_et_alignement():
 		]
 	
 	# On fait + 2 pour que ca ne soit pas colle au bord de lecran psk ca me trigger
-	return num_jour_semaine, num_jour, num_mois, (sorted(liste_centres)[-1]/2.0) + (2 * size_mult)
+	return num_jour_semaine, num_jour, num_mois, int((sorted(liste_centres)[-1]/2.0) + (2 * size_mult))
 
 def render_spinning_image(vitesse_rpm=33):
 	duree_un_tour = 60.0/vitesse_rpm
@@ -466,7 +469,7 @@ def render_loop_image():
 	
 def get_font_ratio(font_path):
 	# Sample sizes with roboto: (665, 21), 962, 1537, 3848
-	measuring_sample = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890:#%$.°'
+	measuring_sample = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890:#%$.°'
 	current_size = 0
 	
 	created_font = pygame.font.Font(font_path, current_size)
@@ -557,7 +560,7 @@ def render_raining(freezing=False):
 
 # START
 if ClockSettings.DEBUG_MODE:
-	print "DEBUGGING IS ENABLED DO NOT FORGET TO DISABLE IT"
+	print("DEBUGGING IS ENABLED DO NOT FORGET TO DISABLE IT")
 	
 status_loading_text = "Pygame"
 
@@ -610,8 +613,8 @@ if len(images_filenames) > 0:
 if AnimationLoopSettings.ENABLED:
 	loop_time = 0
 	loop_end_time = maintenant
-	loop_center_x = largeur * (AnimationLoopSettings.CENTER_X_PERCENT/100.0)
-	loop_center_y = hauteur * (AnimationLoopSettings.CENTER_Y_PERCENT/100.0)
+	loop_center_x = int(largeur * (AnimationLoopSettings.CENTER_X_PERCENT/100.0))
+	loop_center_y = int(hauteur * (AnimationLoopSettings.CENTER_Y_PERCENT/100.0))
 
 	loop_directory = os.path.join(clock_files_folder, os.path.join('animations', AnimationLoopSettings.DIRECTORY))
 	images_filenames = os.listdir(loop_directory)
@@ -658,22 +661,22 @@ seconde_precise = seconde + millisec/1000000.0
 
 redessiner = False
 
-eloignement_secondes = 10 * size_mult
+eloignement_secondes = int(10 * size_mult)
 
-eloignement_minutes = 45 * size_mult
+eloignement_minutes = int(45 * size_mult)
 
-eloignement_heures = 80 * size_mult
+eloignement_heures = int(80 * size_mult)
 
 if largeur > hauteur:
-	rect_couleurs_secondes = [(largeur/2)-(hauteur/2)+eloignement_secondes, eloignement_secondes, hauteur-eloignement_secondes*2, hauteur-eloignement_secondes*2]
-	rect_arc_secondes = [(largeur/2)-(hauteur/2)+eloignement_secondes-2, eloignement_secondes-2, hauteur-((eloignement_secondes-2)*2), hauteur-((eloignement_secondes-2)*2)]
-	rect_arc_minutes = [(largeur/2)-(hauteur/2)+eloignement_minutes, eloignement_minutes, hauteur - eloignement_minutes*2, hauteur - eloignement_minutes * 2]
-	rect_arc_heures = [(largeur/2)-(hauteur/2)+eloignement_heures, eloignement_heures, hauteur - eloignement_heures*2, hauteur - eloignement_heures * 2]
+	rect_couleurs_secondes = [(largeur//2)-(hauteur//2)+eloignement_secondes, eloignement_secondes, hauteur-eloignement_secondes*2, hauteur-eloignement_secondes*2]
+	rect_arc_secondes = [(largeur//2)-(hauteur//2)+eloignement_secondes-2, eloignement_secondes-2, hauteur-((eloignement_secondes-2)*2), hauteur-((eloignement_secondes-2)*2)]
+	rect_arc_minutes = [(largeur//2)-(hauteur//2)+eloignement_minutes, eloignement_minutes, hauteur - eloignement_minutes*2, hauteur - eloignement_minutes * 2]
+	rect_arc_heures = [(largeur//2)-(hauteur//2)+eloignement_heures, eloignement_heures, hauteur - eloignement_heures*2, hauteur - eloignement_heures * 2]
 else:
-	rect_couleurs_secondes = [eloignement_secondes, (hauteur/2)-(largeur/2)+eloignement_secondes, largeur-eloignement_secondes*2, largeur-eloignement_secondes*2]
-	rect_arc_secondes = [eloignement_secondes-2, (hauteur/2)-(largeur/2)+eloignement_secondes-2, largeur-((eloignement_secondes-2)*2), largeur-((eloignement_secondes-2)*2)]
-	rect_arc_minutes = [eloignement_minutes, (hauteur/2)-(largeur/2)+eloignement_minutes, largeur - eloignement_minutes*2, largeur - eloignement_minutes * 2]
-	rect_arc_heures = [eloignement_heures, (hauteur/2)-(largeur/2)+eloignement_heures, largeur - eloignement_heures*2, largeur - eloignement_heures * 2]
+	rect_couleurs_secondes = [eloignement_secondes, (hauteur//2)-(largeur//2)+eloignement_secondes, largeur-eloignement_secondes*2, largeur-eloignement_secondes*2]
+	rect_arc_secondes = [eloignement_secondes-2, (hauteur//2)-(largeur//2)+eloignement_secondes-2, largeur-((eloignement_secondes-2)*2), largeur-((eloignement_secondes-2)*2)]
+	rect_arc_minutes = [eloignement_minutes, (hauteur//2)-(largeur//2)+eloignement_minutes, largeur - eloignement_minutes*2, largeur - eloignement_minutes * 2]
+	rect_arc_heures = [eloignement_heures, (hauteur//2)-(largeur//2)+eloignement_heures, largeur - eloignement_heures*2, largeur - eloignement_heures * 2]
 
 
 
@@ -683,12 +686,12 @@ couleur_fond = ClockSettings.BACKGROUND_COLOR
 
 couleur_fond_inverse = [255 - couleur_fond[0], 255 - couleur_fond[1], 255 - couleur_fond[2]]
 
-liste_calculs_couleurs = [lambda seconde: [255, (seconde/10.0)*255, 0],
-						  lambda seconde: [255 - (seconde/10.0)*255, 255, 0],
-						  lambda seconde: [0, 255, (seconde/10.0)*255],
-						  lambda seconde: [0, 255 - (seconde/10.0)*255, 255],
-						  lambda seconde: [(seconde/10.0)*255, 0, 255],
-						  lambda seconde: [255, 0, 255 - (seconde/10.0)*255]]
+liste_calculs_couleurs = [lambda seconde: [255, int((seconde/10.0)*255), 0],
+						  lambda seconde: [255 - int((seconde/10.0)*255), 255, 0],
+						  lambda seconde: [0, 255, int((seconde/10.0)*255)],
+						  lambda seconde: [0, 255 - int((seconde/10.0)*255), 255],
+						  lambda seconde: [int((seconde/10.0)*255), 0, 255],
+						  lambda seconde: [255, 0, 255 - int((seconde/10.0)*255)]]
 
 en_fonction = True
 
@@ -718,7 +721,7 @@ text_jour_semaine_couleur = couleur_fond_inverse
 
 ssl_context = ssl._create_unverified_context()
 
-retour_thread = {'temperature': ["##,#" + u'\N{DEGREE SIGN}' + "C", {'couleur': couleur_fond_inverse, 'wiggle': 1.5 if ClockSettings.DEBUG_MODE else 0}],
+retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C", {'couleur': couleur_fond_inverse, 'wiggle': 1.5 if ClockSettings.DEBUG_MODE else 0}],
 				 'pourcent_pluie': "##%",
 				 'detailed_info' : "Conditions actuelles",
 				 'valeur_bitcoin': "####.##$",
@@ -747,17 +750,17 @@ noms_jours_semaine = [
 	
 noms_mois = [
 	'Janvier',
-	u'Février',
+	'Février',
 	'Mars',
 	'Avril',
 	'Mai',
 	'Juin',
 	'Juillet',
-	u'Août',
+	'Août',
 	'Septembre',
 	'Octobre',
 	'Novembre',
-	u'Décembre'
+	'Décembre'
 	]
 
 num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
@@ -783,7 +786,7 @@ notification_active = False
 
 notifications = {"fps": 4,
 				 "10:00": ["BANANA", "TIME"],
-				 "12:00": [u"À LA", "BOUFFE"]}
+				 "12:00": ["À LA", "BOUFFE"]}
 
 if ClockSettings.DEBUG_MODE:
 	retour_thread['fetching_animation_text'] = None
@@ -794,7 +797,7 @@ if ClockSettings.FULLSCREEN:
 else:
 	ecran = pygame.display.set_mode(resolution)
 
-print "Done initialising!"
+print("Done initialising!")
 
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
 	loading_master.destroy()
@@ -822,7 +825,7 @@ while en_fonction:
 					pygame.mouse.set_visible(False)
 				else:
 					#reboot
-					status_loading_text = u"À+"
+					status_loading_text = "À+"
 					startup_complete = False
 					en_fonction = False
 			else:
@@ -830,7 +833,7 @@ while en_fonction:
 				pygame.mouse.set_pos(largeur, hauteur)
 		elif event.type == pygame.VIDEORESIZE and False:
 			# Pour resizer, pas complet
-			print "Resize detected"
+			print("Resize detected")
 			"""
 			largeur = event.dict['size'][0]
 			hauteur = (320 * largeur)/480
@@ -856,7 +859,7 @@ while en_fonction:
 		changement_heure = ((minute < minute_precedente or heure < heure_precedente or seconde < seconde_precedente or (seconde - seconde_precedente) > 3) and seconde > 0) and minute > 0
 
 		if changement_heure:
-			print "Time change detected"
+			print("Time change detected")
 			animation_active_frame = 0
 			
 
@@ -864,7 +867,7 @@ while en_fonction:
 
 		if minute != minute_precedente:
 			# A chaque minute
-			notification_active = temps in notifications.keys()
+			notification_active = temps in list(notifications.keys())
 			couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
 			text_jour_semaine_couleur = get_text_jour_semaine_couleur()
 					
@@ -924,7 +927,7 @@ while en_fonction:
 					spinning_images.append(spinning_images.pop(0))
 				spinning_image = spinning_images[0]
 			meteo_update_recent = True
-		elif meteo_update_recent and minute % 5 is not 0:
+		elif meteo_update_recent and minute % 5 != 0:
 			meteo_update_recent = False
 			
 			
@@ -946,10 +949,10 @@ while en_fonction:
 			pygame.draw.rect(surface, midi_couleur, [0, 0, largeur, hauteur])
 			ecran.blit(surface, [0, 0])
 			midi_texte = font_100.render(big_top_text, 1, [255, 255, 255], midi_couleur)
-			midi_texte_rect = midi_texte.get_rect(center=(largeur/2, 0.3 * hauteur))
+			midi_texte_rect = midi_texte.get_rect(center=(largeur//2, int(0.3 * hauteur)))
 			ecran.blit(midi_texte, midi_texte_rect)
 			midi_texte = font_100.render(big_bottom_text, 1, [255, 255, 255], midi_couleur)
-			midi_texte_rect = midi_texte.get_rect(center=(largeur/2, 0.7 * hauteur))
+			midi_texte_rect = midi_texte.get_rect(center=(largeur//2, int(0.7 * hauteur)))
 			ecran.blit(midi_texte, midi_texte_rect)
 			sleep_until_next_frame()
 			continue
@@ -963,8 +966,8 @@ while en_fonction:
 				else:
 					pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
 					weather_animation = ''
-				pygame.draw.circle(surface, [0, 0, 0], [largeur/2, hauteur/2], int(155 * size_mult))
-				pygame.draw.circle(surface, [25, 25, 25], [largeur/2, hauteur/2], int(36 * size_mult))
+				pygame.draw.circle(surface, [0, 0, 0], [largeur//2, hauteur//2], int(155 * size_mult))
+				pygame.draw.circle(surface, [25, 25, 25], [largeur//2, hauteur//2], int(36 * size_mult))
 				Thread(target=get_data, args=(retour_thread, True)).start()
 				random_number_color = randint(0, 59)
 				num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
@@ -1033,24 +1036,24 @@ while en_fonction:
 			
 		
 		texte = font_25.render(temps, 1, [255, 255, 255])
-		texte_rect = texte.get_rect(center=((largeur/2), (hauteur/2)))
+		texte_rect = texte.get_rect(center=((largeur//2), (hauteur//2)))
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_25.render(str(seconde), 1, [255, 255, 255])
 		texte = pygame.transform.rotozoom(texte, -degree_secondes + (180 if 45 > seconde_precise > 15 else 0), 1)
-		texte_rect = texte.get_rect(center=((largeur/2) + math.cos(math.radians(degree_secondes - 92)) * 135 * size_mult, (hauteur/2) + math.sin(math.radians(degree_secondes - 92)) * 135 * size_mult))
+		texte_rect = texte.get_rect(center=(int((largeur/2) + math.cos(math.radians(degree_secondes - 92)) * 135 * size_mult), int((hauteur/2) + math.sin(math.radians(degree_secondes - 92)) * 135 * size_mult)))
 		ecran.blit(texte, texte_rect)			
 			
 		texte = font_17.render(retour_thread['detailed_info'], 1, couleur_fond_inverse, couleur_fond)
 		texte_rect = texte.get_rect()
-		texte_rect.left = 2 * size_mult
+		texte_rect.left = int(2 * size_mult)
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_25.render(retour_thread['temperature'][0] or text_anim_frames[text_anim_frame], 1, retour_thread['temperature'][1]['couleur'])
 		texte_bottom = texte_rect.bottom
 		texte_rect = texte.get_rect()
 		texte_rect.top = texte_bottom
-		texte_rect.left = 2 * size_mult
+		texte_rect.left = int(2 * size_mult)
 		texte_rect_final = texte_rect
 		if retour_thread['temperature'][1]['wiggle'] != 0:
 			texte = pygame.transform.rotate(texte, (retour_thread['temperature'][1]['wiggle'] * math.sin(millisec * 25)))
@@ -1065,7 +1068,7 @@ while en_fonction:
 		
 		texte = font_17.render(retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_rect = texte.get_rect()
-		texte_rect.left = (2 * size_mult)
+		texte_rect.left = int(2 * size_mult)
 		texte_rect.bottom = hauteur
 		ecran.blit(texte, texte_rect)
 		
@@ -1078,8 +1081,8 @@ while en_fonction:
 		texte = font_17.render(retour_thread['valeur_bitcoin_cash'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top - (2 * size_mult)
 		texte_rect = texte.get_rect()
-		texte_rect.left = (2 * size_mult)
-		texte_rect.bottom = texte_top
+		texte_rect.left = int(2 * size_mult)
+		texte_rect.bottom = int(texte_top)
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_17.render("BCH", 1, couleur_fond_inverse, couleur_fond)
@@ -1091,8 +1094,8 @@ while en_fonction:
 		texte = font_17.render(retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top - (2 * size_mult)
 		texte_rect = texte.get_rect()
-		texte_rect.left = (2 * size_mult)
-		texte_rect.bottom = texte_top
+		texte_rect.left = int(2 * size_mult)
+		texte_rect.bottom = int(texte_top)
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_17.render("ETH", 1, couleur_fond_inverse, couleur_fond)
@@ -1104,8 +1107,8 @@ while en_fonction:
 		texte = font_17.render(retour_thread['valeur_litecoin'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top - (2 * size_mult)
 		texte_rect = texte.get_rect()
-		texte_rect.left = (2 * size_mult)
-		texte_rect.bottom = texte_top
+		texte_rect.left = int(2 * size_mult)
+		texte_rect.bottom = int(texte_top)
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_17.render("LTC", 1, couleur_fond_inverse, couleur_fond)
@@ -1117,14 +1120,14 @@ while en_fonction:
 		texte = font_17.render(retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top - (20 * size_mult)
 		texte_rect = texte.get_rect()
-		texte_rect.left = (2 * size_mult)
-		texte_rect.bottom = texte_top
+		texte_rect.left = int(2 * size_mult)
+		texte_rect.bottom = int(texte_top)
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_17.render(calculated_fps, 1, couleur_fond_inverse, couleur_fond)
 		texte_rect = texte.get_rect()
 		texte_rect.bottom = hauteur
-		texte_rect.right = largeur/3
+		texte_rect.right = largeur//3
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_25.render(noms_jours_semaine[num_jour_semaine], 1, text_jour_semaine_couleur, couleur_fond)
@@ -1135,13 +1138,13 @@ while en_fonction:
 		texte = font_40.render(num_jour, 1, couleur_fond_inverse)
 		texte_bottom = texte_rect.bottom
 		texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-		texte_rect.top = texte_bottom - (12 * size_mult)
+		texte_rect.top = int(texte_bottom - (12 * size_mult))
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_17.render(noms_mois[num_mois], 1, couleur_fond_inverse)
 		texte_bottom = texte_rect.bottom
 		texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-		texte_rect.top = texte_bottom - (10 * size_mult)
+		texte_rect.top = int(texte_bottom - (10 * size_mult))
 		ecran.blit(texte, texte_rect)
 
 		
@@ -1168,7 +1171,7 @@ while en_fonction:
 			
 			texte = font_25.render(temps_restant, 1, couleur_fond_inverse, couleur_fond)
 			texte_rect = texte.get_rect()
-			texte_rect.right = largeur - (2 * size_mult)
+			texte_rect.right = int(largeur - (2 * size_mult))
 			texte_rect.bottom = hauteur
 			ecran.blit(texte, texte_rect)
 			
@@ -1177,10 +1180,10 @@ while en_fonction:
 			# Smooth
 			couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
 			
-			texte = font_17.render(u"Chalet :D", 1, couleur_titre_countdown, couleur_fond)
+			texte = font_17.render("Chalet :D", 1, couleur_titre_countdown, couleur_fond)
 			texte_top = texte_rect.top
 			texte_rect = texte.get_rect()
-			texte_rect.right = largeur - (2 * size_mult)
+			texte_rect.right = int(largeur - (2 * size_mult))
 			texte_rect.bottom = texte_top
 			ecran.blit(texte, texte_rect)
 			
@@ -1214,19 +1217,19 @@ while en_fonction:
 		ecran.blit(surface, [0, 0])
 		
 		texte = font_25.render("Voulez-vous vraiment quitter?", 1, [255, 255, 255], [0, 0, 0])
-		texte_rect = texte.get_rect(center=((largeur/2), hauteur/4))
+		texte_rect = texte.get_rect(center=((largeur//2), hauteur//4))
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_40.render("Oui", 1, [0, 255, 0])
-		texte_rect = texte.get_rect(center=((largeur/6), (hauteur/2)))
+		texte_rect = texte.get_rect(center=((largeur//6), (hauteur//2)))
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_40.render("Non", 1, [255, 0, 0])
-		texte_rect = texte.get_rect(center=((largeur/2), (hauteur/2)))
+		texte_rect = texte.get_rect(center=((largeur//2), (hauteur//2)))
 		ecran.blit(texte, texte_rect)
 		
 		texte = font_40.render("Reboot", 1, [0, 0, 255])
-		texte_rect = texte.get_rect(center=((5*largeur)/6, (hauteur/2)))
+		texte_rect = texte.get_rect(center=((5*largeur)//6, (hauteur//2)))
 		ecran.blit(texte, texte_rect)
 
 		
@@ -1241,11 +1244,12 @@ pygame.mouse.set_visible(False)
 pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
 ecran.blit(surface, [0, 0])
 texte = font_100.render(status_loading_text, 1, couleur_fond_inverse)
-texte_rect = texte.get_rect(center=(largeur/2, hauteur/2))
+texte_rect = texte.get_rect(center=(largeur//2, hauteur//2))
 ecran.blit(texte, texte_rect)
 pygame.display.update()
 time.sleep(1)
 
+# Reusing startup_complete since its only needed during startup
 if not startup_complete:
 	try:
 		import RPi.GPIO as GPIO
