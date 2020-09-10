@@ -520,21 +520,21 @@ def get_raindrop():
 
 def render_snowing():
 	if changement_seconde:
-		for snfk in snowflake_list:
-			if snfk['pos_y'] > hauteur:
-				snowflake_list.remove(snfk)
+		for snowflake in snowflake_list:
+			if snowflake['pos_y'] > hauteur:
+				snowflake_list.remove(snowflake)
 		snowflake_list.append(get_snowflake())
 		
-	for snfk in snowflake_list:
-		if snfk['pos_x'] < 0 or snfk['pos_x'] > largeur:
-			snfk['vit_x'] = - snfk['vit_x']
+	for snowflake in snowflake_list:
+		if snowflake['pos_x'] < 0 or snowflake['pos_x'] > largeur:
+			snowflake['vit_x'] = - snowflake['vit_x']
 		if changement_seconde:
-			snfk['vit_x'] = randint(-largeur/15, largeur/15)
+			snowflake['vit_x'] = randint(-largeur/15, largeur/15)
 			
-		snfk['pos_y'] += snfk['vit_y'] * duree_last_frame
-		snfk['pos_x'] += snfk['vit_x'] * duree_last_frame
+		snowflake['pos_y'] += snowflake['vit_y'] * duree_last_frame
+		snowflake['pos_x'] += snowflake['vit_x'] * duree_last_frame
 
-		pygame.draw.circle(ecran, [255, 255, 255], [int(snfk['pos_x']), int(snfk['pos_y'])], int(5 * size_mult))
+		pygame.draw.circle(ecran, [255, 255, 255], [int(snowflake['pos_x']), int(snowflake['pos_y'])], int(5 * size_mult))
 		
 
 def render_raining(freezing=False):
@@ -905,8 +905,8 @@ while en_fonction:
 
 		if redessiner and minute < 1:
 			num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
-			pygame.draw.circle(surface, [0, 0, 0], [largeur/2, hauteur/2], int(118 * size_mult))
-			pygame.draw.circle(surface, [25, 25, 25], [largeur/2, hauteur/2], int(36 * size_mult))
+			pygame.draw.circle(surface, [0, 0, 0], [largeur//2, hauteur//2], int(118 * size_mult))
+			pygame.draw.circle(surface, [25, 25, 25], [largeur//2, hauteur//2], int(36 * size_mult))
 			redessiner = False
 		elif minute > 0 and not redessiner:
 			redessiner = True
