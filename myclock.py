@@ -4,11 +4,11 @@
 class ClockSettings(object):
 
 	ENABLE_COUNTDOWN_TIMER = True
-	DEBUG_MODE = True
+	DEBUG_MODE = False
 	DEBUG_LOADING_ANIMATION = False
 	ANIMATION_DURATION_SECONDS = 2.5
 	BACKGROUND_COLOR = [0, 0, 0]
-	FRAMERATE = 7 # None = unlimited fps
+	FRAMERATE = 8 # None = unlimited fps
 	FONT = "moonget.ttf"
 	FULLSCREEN = False
 	WINDOWED_WIDTH = 480
@@ -504,7 +504,7 @@ def sleep_until_next_frame():
 
 def get_snowflake():
 	mult_five = int(5 * size_mult)
-	return {'pos_y': -mult_five,
+	return {'pos_y': int(-randint(10, 25) * size_mult),
 			'pos_x': randint(mult_five, largeur - mult_five),
 			'vit_y': randint(hauteur//10, hauteur//7),
 			'vit_x': randint(-largeur//15, largeur//15)}
