@@ -8,9 +8,9 @@ class ClockSettings(object):
 	DEBUG_LOADING_ANIMATION = False
 	ANIMATION_DURATION_SECONDS = 2.5
 	BACKGROUND_COLOR = [0, 0, 0]
-	FRAMERATE = 8 # None = unlimited fps
+	FRAMERATE = 70 # None = unlimited fps
 	FONT = "moonget.ttf"
-	FULLSCREEN = False
+	FULLSCREEN = True
 	WINDOWED_WIDTH = 480
 	ENABLE_LOADING_ANIMATION = True
 	RASPI2FB_CHECK = False
@@ -529,7 +529,7 @@ def render_snowing():
 		if snowflake['pos_x'] < 0 or snowflake['pos_x'] > largeur:
 			snowflake['vit_x'] = - snowflake['vit_x']
 		if changement_seconde:
-			snowflake['vit_x'] = randint(-largeur/15, largeur/15)
+			snowflake['vit_x'] = randint(-largeur//15, largeur//15)
 			
 		snowflake['pos_y'] += snowflake['vit_y'] * duree_last_frame
 		snowflake['pos_x'] += snowflake['vit_x'] * duree_last_frame
@@ -1018,16 +1018,16 @@ while en_fonction:
 			pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(113-degree_secondes), math.radians(123-degree_secondes), int(30 * size_mult))
 
 			#Minutes
-			pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes, math.radians(90-((360*minute_changeante)/60)), math.radians(90), int(30 * size_mult))
+			pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes, math.radians(90-(degree_minutes)), math.radians(90), int(30 * size_mult))
 
 			#Heures
 			pygame.draw.arc(surface, seconde_a_couleur((heure_changeante*60)/12), rect_arc_heures, math.radians(90-((360*heure_changeante)/12)), math.radians(90), int(40 * size_mult))
 	
 		
 		#Arc secondes (noir)
-		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(75-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
-		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(76-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
-		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(77-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
+		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(74-degree_secondes), math.radians(110-degree_secondes), int(34 * size_mult))
+		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(75-degree_secondes), math.radians(110-degree_secondes), int(34 * size_mult))
+		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(76-degree_secondes), math.radians(110-degree_secondes), int(34 * size_mult))
 			
 		ecran.blit(surface, [0, 0])
 		
@@ -1151,7 +1151,7 @@ while en_fonction:
 		# Countdown timer
 		if ClockSettings.ENABLE_COUNTDOWN_TIMER:
 			# Countdown normal
-			temps_restant = datetime.datetime(2020, 9, 24, 8, 00) - maintenant
+			temps_restant = datetime.datetime(2021, 3, 31, 10, 00) - maintenant
 			# Fin de journée
 			# temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 			
@@ -1180,7 +1180,7 @@ while en_fonction:
 			# Smooth
 			couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
 			
-			texte = font_17.render("Chalet :D", 1, couleur_titre_countdown, couleur_fond)
+			texte = font_17.render("Fête Phil <3", 1, couleur_titre_countdown, couleur_fond)
 			texte_top = texte_rect.top
 			texte_rect = texte.get_rect()
 			texte_rect.right = int(largeur - (2 * size_mult))
