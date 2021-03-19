@@ -1,4 +1,7 @@
 # py-clock
+
+![Alt text](screenshot.png?raw=true "Screenshot")
+
 A Python 3 clock made using Pygame.
 
 This is a personnal projet I made for myself and after some demands for the source code, I have uploaded it here.
