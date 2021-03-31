@@ -536,7 +536,7 @@ def render_snowing():
 		if snowflake['pos_x'] < 0 or snowflake['pos_x'] > largeur:
 			snowflake['vit_x'] = - snowflake['vit_x']
 		if changement_seconde:
-			snowflake['vit_x'] = randint(-largeur/15, largeur/15)
+			snowflake['vit_x'] = randint(-largeur//15, largeur//15)
 			
 		snowflake['pos_y'] += snowflake['vit_y'] * duree_last_frame
 		snowflake['pos_x'] += snowflake['vit_x'] * duree_last_frame
