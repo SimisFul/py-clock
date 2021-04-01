@@ -8,7 +8,7 @@ class ClockSettings(object):
 	DEBUG_LOADING_ANIMATION = False
 	ANIMATION_DURATION_SECONDS = 2.5
 	BACKGROUND_COLOR = [0, 0, 0]
-	FRAMERATE = 8 # None = unlimited fps
+	FRAMERATE = 60 # None = unlimited fps
 	FONT = "moonget.ttf"
 	FULLSCREEN = False
 	WINDOWED_WIDTH = 480
@@ -815,7 +815,7 @@ while en_fonction:
 	debut_frame = time.time()
 	
 	for event in pygame.event.get():
-		if event.type == 6:
+		if event.type == pygame.MOUSEBUTTONUP:
 			pygame.mouse.set_visible(True)
 			position_souris = pygame.mouse.get_pos()
 			if toggle_menu:
