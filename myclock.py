@@ -12,7 +12,7 @@ class ClockSettings(object):
 	FONT = "moonget.ttf"
 	FULLSCREEN = False
 	WINDOWED_WIDTH = 480
-	ENABLE_LOADING_ANIMATION = False
+	ENABLE_LOADING_ANIMATION = True
 	RASPI2FB_CHECK = False
 	
 
@@ -1132,9 +1132,8 @@ while en_fonction:
 			
 			texte = font_17.render(retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 			texte_top = texte_rect.top - (2 * size_mult)
-			texte_rect = texte.get_rect()
-			texte_rect.left = int(2 * size_mult)
-			texte_rect.bottom = int(texte_top)
+			texte_rect = texte.get_rect(center=(int(texte_rect.right + (10 * size_mult)), 0))
+			texte_rect.bottom = texte_top
 			ecran.blit(texte, texte_rect)
 			
 			texte = font_17.render("Mining", 1, couleur_fond_inverse, couleur_fond)
