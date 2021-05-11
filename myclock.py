@@ -194,9 +194,10 @@ def get_data(retour_thread, get_forecast=False):
 	pluie_actuelle = retour_thread['pourcent_pluie']
 	detailed_info_actuelle = retour_thread['detailed_info']
 	valeur_bitcoin_actuelle = retour_thread['valeur_bitcoin']
-	valeur_litecoin_actuelle = retour_thread['valeur_litecoin']
-	valeur_bitcoin_cash_actuelle = retour_thread['valeur_bitcoin_cash']
+	#valeur_litecoin_actuelle = retour_thread['valeur_litecoin']
+	#valeur_bitcoin_cash_actuelle = retour_thread['valeur_bitcoin_cash']
 	valeur_ethereum_actuelle = retour_thread['valeur_ethereum']
+	mined_ether_actuel = retour_thread['ethermine_data']
 	
 	internet_access = ping_this('http://google.com')
 	
@@ -325,11 +326,12 @@ def get_data(retour_thread, get_forecast=False):
 			retour_thread['temperature'][1]['wiggle'] = shaking_etat_actuel
 			retour_thread['pourcent_pluie'] = pluie_actuelle
 			
-			retour_thread['thread_en_cours'] = False
-			get_data(retour_thread, get_forecast=True)
-			return True
+			# retour_thread['thread_en_cours'] = False
+			# get_data(retour_thread, get_forecast=True)
+			# return True
 
 	try:
+		"""
 		print("Requesting litecoin value")
 		retour_thread['valeur_litecoin'] = None
 		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=LTC&tsyms=CAD", timeout=60)
@@ -340,7 +342,7 @@ def get_data(retour_thread, get_forecast=False):
 		retour_thread['valeur_litecoin'] = valeur_litecoin
 		valeur_litecoin_actuelle = valeur_litecoin
 		time.sleep(0.1)
-		
+		"""
 		print("Requesting ethereum value")
 		retour_thread['valeur_ethereum'] = None
 		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=CAD", timeout=60)
@@ -350,17 +352,6 @@ def get_data(retour_thread, get_forecast=False):
 		valeur_ethereum = str(round(valeur_float_ethereum, 2)) + "$"
 		retour_thread['valeur_ethereum'] = valeur_ethereum
 		valeur_ethereum_actuelle = valeur_ethereum
-		time.sleep(0.1)
-		
-		print("Requesting bitcoin cash value")
-		retour_thread['valeur_bitcoin_cash'] = None
-		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BCH&tsyms=CAD", timeout=60)
-		the_page = response.read()
-		data = json.loads(the_page.decode('utf-8'))
-		valeur_float_bitcoin_cash = data['CAD']
-		valeur_bitcoin_cash = str(round(valeur_float_bitcoin_cash, 2)) + "$"
-		retour_thread['valeur_bitcoin_cash'] = valeur_bitcoin_cash
-		valeur_bitcoin_cash_actuelle = valeur_bitcoin_cash
 		time.sleep(0.1)
 		
 		print("Requesting bitcoin value")
@@ -373,17 +364,48 @@ def get_data(retour_thread, get_forecast=False):
 		retour_thread['valeur_bitcoin'] = valeur_bitcoin
 		valeur_bitcoin_actuelle = valeur_bitcoin
 		
+		print("Requesting ethermine data")
+		retour_thread['ethermine_data'] = [None, None]
+		request = urllib.request.Request("https://api.ethermine.org/miner/0x698ea061c90507b81931f9a9f8cfe6f519d8cd45/currentStats", headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)'})
+		response = urllib.request.urlopen(request, timeout=60)
+		the_page = response.read()
+		data = json.loads(the_page.decode('utf-8'))
+		#data = {'status': 'OK', 'data': {'time': 1620735600, 'lastSeen': 1620735521, 'reportedHashrate': 24240470, 'currentHashrate': 19864526.8525, 'validShares': 16, 'invalidShares': 0, 'staleShares': 1, 'averageHashrate': 25524089.3757118, 'activeWorkers': 1, 'unpaid': 7390727788989035, 'unconfirmed': None, 'coinsPerMin': 1.1470426643973251e-06, 'usdPerMin': 0.004636300567787412, 'btcPerMin': 8.317206359545006e-08}}
+		float_mined_ether = data['data']['unpaid'] / 1000000000000000000
+		mined_ether = str(round(float_mined_ether, 5))
+		valeur_mined_ether = str(round(float_mined_ether * valeur_float_ethereum, 2)) + '$'
+		retour_thread['ethermine_data'][0] = mined_ether
+		retour_thread['ethermine_data'][1] = valeur_mined_ether
+		mined_ether_actuel = [mined_ether, valeur_mined_ether]
+		time.sleep(0.1)
+		
+		"""
+		print("Requesting bitcoin cash value")
+		retour_thread['valeur_bitcoin_cash'] = None
+		response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BCH&tsyms=CAD", timeout=60)
+		the_page = response.read()
+		data = json.loads(the_page.decode('utf-8'))
+		valeur_float_bitcoin_cash = data['CAD']
+		valeur_bitcoin_cash = str(round(valeur_float_bitcoin_cash, 2)) + "$"
+		retour_thread['valeur_bitcoin_cash'] = valeur_bitcoin_cash
+		valeur_bitcoin_cash_actuelle = valeur_bitcoin_cash
+		time.sleep(0.1)
+		"""
+		
+		
 	except Exception as erreur:
 		print(erreur)
-		retour_thread['valeur_litecoin'] = "Erreur"
+		#retour_thread['valeur_litecoin'] = "Erreur"
 		retour_thread['valeur_ethereum'] = "Erreur"
-		retour_thread['valeur_bitcoin_cash'] = "Erreur"
+		#retour_thread['valeur_bitcoin_cash'] = "Erreur"
 		retour_thread['valeur_bitcoin'] = "Erreur"
+		retour_thread['ethermine_data'] = ['Erreur', 'Erreur']
 		time.sleep(3)
-		retour_thread['valeur_litecoin'] = valeur_litecoin_actuelle
+		#retour_thread['valeur_litecoin'] = valeur_litecoin_actuelle
 		retour_thread['valeur_ethereum'] = valeur_ethereum_actuelle
-		retour_thread['valeur_bitcoin_cash'] = valeur_bitcoin_cash_actuelle
+		#retour_thread['valeur_bitcoin_cash'] = valeur_bitcoin_cash_actuelle
 		retour_thread['valeur_bitcoin'] = valeur_bitcoin_actuelle
+		retour_thread['ethermine_data'] = mined_ether_actuel
 		retour_thread['thread_en_cours'] = False
 		get_data(retour_thread, get_forecast=False)
 
@@ -732,9 +754,10 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C", {'couleur': c
 				 'pourcent_pluie': "##%",
 				 'detailed_info' : "Conditions actuelles",
 				 'valeur_bitcoin': "####.##$",
-				 'valeur_litecoin': "##.##$",
-				 'valeur_bitcoin_cash': "###.##$",
+				 #'valeur_litecoin': "##.##$",
+				 #'valeur_bitcoin_cash': "###.##$",
 				 'valeur_ethereum': "###.##$",
+				 'ethermine_data': ['#.#####', '###.##$'],
 				 'fetching_animation_text': "",
 				 'thread_en_cours': False,
 				 'weather_animation' : ''}
@@ -1073,26 +1096,34 @@ while en_fonction:
 		texte_rect.top = texte_bottom
 		ecran.blit(texte, texte_rect)
 		
-		texte = font_17.render(retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
+		texte = font_17.render(retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
+		texte_top = texte_rect.top - (2 * size_mult)
 		texte_rect = texte.get_rect()
 		texte_rect.left = int(2 * size_mult)
 		texte_rect.bottom = hauteur
 		ecran.blit(texte, texte_rect)
 		
-		texte = font_17.render("BTC", 1, couleur_fond_inverse, couleur_fond)
-		texte_top = texte_rect.top
-		texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-		texte_rect.bottom = texte_top
-		ecran.blit(texte, texte_rect)
-		
-		texte = font_17.render(retour_thread['valeur_bitcoin_cash'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
+		texte = font_17.render(retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top - (2 * size_mult)
 		texte_rect = texte.get_rect()
 		texte_rect.left = int(2 * size_mult)
 		texte_rect.bottom = int(texte_top)
 		ecran.blit(texte, texte_rect)
 		
-		texte = font_17.render("BCH", 1, couleur_fond_inverse, couleur_fond)
+		texte = font_17.render("Mining", 1, couleur_fond_inverse, couleur_fond)
+		texte_top = texte_rect.top
+		texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
+		texte_rect.bottom = texte_top
+		ecran.blit(texte, texte_rect)
+		
+		texte = font_17.render(retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
+		texte_top = texte_rect.top - (2 * size_mult)
+		texte_rect = texte.get_rect()
+		texte_rect.left = int(2 * size_mult)
+		texte_rect.bottom = int(texte_top)
+		ecran.blit(texte, texte_rect)
+		
+		texte = font_17.render("BTC", 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top
 		texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
 		texte_rect.bottom = texte_top
@@ -1111,6 +1142,21 @@ while en_fonction:
 		texte_rect.bottom = texte_top
 		ecran.blit(texte, texte_rect)
 		
+		
+		"""
+		texte = font_17.render(retour_thread['valeur_bitcoin_cash'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
+		texte_top = texte_rect.top - (2 * size_mult)
+		texte_rect = texte.get_rect()
+		texte_rect.left = int(2 * size_mult)
+		texte_rect.bottom = int(texte_top)
+		ecran.blit(texte, texte_rect)
+		
+		texte = font_17.render("BCH", 1, couleur_fond_inverse, couleur_fond)
+		texte_top = texte_rect.top
+		texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
+		texte_rect.bottom = texte_top
+		ecran.blit(texte, texte_rect)
+		
 		texte = font_17.render(retour_thread['valeur_litecoin'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top - (2 * size_mult)
 		texte_rect = texte.get_rect()
@@ -1123,7 +1169,7 @@ while en_fonction:
 		texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
 		texte_rect.bottom = texte_top
 		ecran.blit(texte, texte_rect)
-		
+		"""
 		texte = font_17.render(retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 		texte_top = texte_rect.top - (20 * size_mult)
 		texte_rect = texte.get_rect()
@@ -1158,7 +1204,7 @@ while en_fonction:
 		# Countdown timer
 		if ClockSettings.ENABLE_COUNTDOWN_TIMER:
 			# Countdown normal
-			temps_restant = datetime.datetime(2021, 3, 31, 1, 00) - maintenant
+			temps_restant = datetime.datetime(2021, 7, 1, 10, 00) - maintenant
 			# Fin de journée
 			# temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 			
@@ -1187,7 +1233,7 @@ while en_fonction:
 			# Smooth
 			couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
 			
-			texte = font_17.render("Fête à Phil <3", 1, couleur_titre_countdown, couleur_fond)
+			texte = font_17.render("Home :D", 1, couleur_titre_countdown, couleur_fond)
 			texte_top = texte_rect.top
 			texte_rect = texte.get_rect()
 			texte_rect.right = int(largeur - (2 * size_mult))
