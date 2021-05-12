@@ -18,9 +18,9 @@ class ClockSettings(object):
 
 class AnimationLoopSettings(object):
 	ENABLED = True
-	DIRECTORY = 'frozen_flame'
-	FPS = 30.0
-	SCALE = 0.15
+	DIRECTORY = 'ethergb'
+	FPS = 10.0
+	SCALE = 0.34
 	# Pour la position, le chiffre est un pourcentage de l'ecran
 	CENTER_X_PERCENT = 92.0
 	CENTER_Y_PERCENT = 50.0
@@ -393,7 +393,7 @@ def get_data(retour_thread, get_forecast=False):
 			# data = {'status': 'OK', 'data': {'time': 1620735600, 'lastSeen': 1620735521, 'reportedHashrate': 24240470, 'currentHashrate': 19864526.8525, 'validShares': 16, 'invalidShares': 0, 'staleShares': 1, 'averageHashrate': 25524089.3757118, 'activeWorkers': 1, 'unpaid': 7390727788989035, 'unconfirmed': None, 'coinsPerMin': 1.1470426643973251e-06, 'usdPerMin': 0.004636300567787412, 'btcPerMin': 8.317206359545006e-08}}
 			float_mined_ether = (data['data']['unpaid'] + payout_total) / 1000000000000000000
 			float_hashrate = data['data']['currentHashrate'] / 1000000
-			mined_ether = str(round(float_mined_ether, 5))
+			mined_ether = str(round(float_mined_ether, 5)) + ' ETH'
 			valeur_mined_ether = str(round(float_mined_ether * valeur_float_ethereum, 2)) + '$'
 			valeur_hashrate = str(round(float_hashrate, 1)) + 'MH/s'
 			retour_thread['ethermine_data'][0] = mined_ether
@@ -423,7 +423,7 @@ def get_data(retour_thread, get_forecast=False):
 		retour_thread['valeur_ethereum'] = "Erreur"
 		#retour_thread['valeur_bitcoin_cash'] = "Erreur"
 		retour_thread['valeur_bitcoin'] = "Erreur"
-		retour_thread['ethermine_data'] = ['Erreur', 'Erreur']
+		retour_thread['ethermine_data'] = ['Erreur', 'Erreur', 'Erreur']
 		time.sleep(3)
 		#retour_thread['valeur_litecoin'] = valeur_litecoin_actuelle
 		retour_thread['valeur_ethereum'] = valeur_ethereum_actuelle
@@ -781,7 +781,7 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C", {'couleur': c
 				 #'valeur_litecoin': "##.##$",
 				 #'valeur_bitcoin_cash': "###.##$",
 				 'valeur_ethereum': "###.##$",
-				 'ethermine_data': ['#.#####', '###.##$', '##.#MH/s'],
+				 'ethermine_data': ['#.##### ETH', '###.##$', '##.#MH/s'],
 				 'fetching_animation_text': "",
 				 'thread_en_cours': False,
 				 'weather_animation' : ''}
@@ -1122,17 +1122,21 @@ while en_fonction:
 		
 		if EthermineAPI.ENABLE_ETHERMINE_STATS:
 		
-			texte = font_17.render(retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
-			texte_top = texte_rect.top - (2 * size_mult)
+			texte = font_17.render(retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse)
 			texte_rect = texte.get_rect()
-			hashrate_left = int(texte_rect.right + (20 * size_mult))
-			texte_rect.left = int(2 * size_mult)
 			texte_rect.bottom = hauteur
+			texte_rect.left = int(2 * size_mult)
 			ecran.blit(texte, texte_rect)
-			
+		
 			texte = font_17.render(retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
 			texte_top = texte_rect.top - (2 * size_mult)
-			texte_rect = texte.get_rect(center=(int(texte_rect.right + (10 * size_mult)), 0))
+			texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
+			texte_rect.bottom = texte_top
+			ecran.blit(texte, texte_rect)
+			
+			texte = font_17.render(retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
+			texte_top = texte_rect.top - (2 * size_mult)
+			texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
 			texte_rect.bottom = texte_top
 			ecran.blit(texte, texte_rect)
 			
@@ -1206,12 +1210,6 @@ while en_fonction:
 		texte_rect.bottom = int(texte_top)
 		ecran.blit(texte, texte_rect)
 		
-		if EthermineAPI.ENABLE_ETHERMINE_STATS:
-			texte = font_17.render(retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse)
-			texte_rect = texte.get_rect()
-			texte_rect.bottom = hauteur
-			texte_rect.left = hashrate_left
-			ecran.blit(texte, texte_rect)
 		
 		texte = font_25.render(noms_jours_semaine[num_jour_semaine], 1, text_jour_semaine_couleur, couleur_fond)
 		texte_rect = texte.get_rect(center=(largeur - centre_date, 0))
