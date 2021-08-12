@@ -11,7 +11,7 @@ class ClockSettings(object):
 	FRAMERATE = 60 # None = unlimited fps
 	FONT = "moonget.ttf"
 	FULLSCREEN = False
-	WINDOWED_WIDTH = 480
+	WINDOWED_WIDTH = 1280
 	ENABLE_LOADING_ANIMATION = True
 	RASPI2FB_CHECK = False
 	
@@ -22,13 +22,13 @@ class AnimationLoopSettings(object):
 	FPS = 10.0
 	SCALE = 0.34
 	# Pour la position, le chiffre est un pourcentage de l'ecran
-	CENTER_X_PERCENT = 92.0
+	CENTER_X_PERCENT = 91.0
 	CENTER_Y_PERCENT = 50.0
 	
 	
 class EthermineAPI(object):
 	ENABLE_ETHERMINE_STATS = True
-	MINER_ADDRESS = '0x698ea061c90507b81931f9a9f8cfe6f519d8cd45'
+	MINER_ADDRESS = '0xfF7E45037Bbf52e8145573254e3d554BE4548C64'
 	ADD_UP_PAYOUTS = True
 
 # -------------------------------------LOADING SCREEN------------------------------------- #
@@ -253,12 +253,12 @@ def get_data(retour_thread, get_forecast=False):
 				couleur_temperature = [102, 255, 255]
 			elif casted_temperature >= 20:
 				# fait chaud
-				if casted_temperature > 35:
-					niveau_vert = 69
+				if casted_temperature > 30:
+					niveau_vert = 68
 				else:
-					niveau_vert = int((35 - casted_temperature) * 12.4) + 69
+					niveau_vert = int((30 - casted_temperature) * 18.7) + 68
 
-				couleur_temperature = [255, niveau_vert, 84]
+				couleur_temperature = [255, niveau_vert, 68]
 			else:
 				couleur_temperature = couleur_fond_inverse
 				
@@ -393,9 +393,9 @@ def get_data(retour_thread, get_forecast=False):
 			# data = {'status': 'OK', 'data': {'time': 1620735600, 'lastSeen': 1620735521, 'reportedHashrate': 24240470, 'currentHashrate': 19864526.8525, 'validShares': 16, 'invalidShares': 0, 'staleShares': 1, 'averageHashrate': 25524089.3757118, 'activeWorkers': 1, 'unpaid': 7390727788989035, 'unconfirmed': None, 'coinsPerMin': 1.1470426643973251e-06, 'usdPerMin': 0.004636300567787412, 'btcPerMin': 8.317206359545006e-08}}
 			float_mined_ether = (data['data']['unpaid'] + payout_total) / 1000000000000000000
 			float_hashrate = data['data']['currentHashrate'] / 1000000
-			mined_ether = str(round(float_mined_ether, 5)) + ' ETH'
+			mined_ether = str('{:.5f}'.format(round(float_mined_ether, 5))) + ' ETH'
 			valeur_mined_ether = str(round(float_mined_ether * valeur_float_ethereum, 2)) + '$'
-			valeur_hashrate = str(round(float_hashrate, 1)) + 'MH/s'
+			valeur_hashrate = str(round(float_hashrate, 1)) + ' MH/s'
 			retour_thread['ethermine_data'][0] = mined_ether
 			retour_thread['ethermine_data'][1] = valeur_mined_ether
 			retour_thread['ethermine_data'][2] = valeur_hashrate
@@ -430,8 +430,8 @@ def get_data(retour_thread, get_forecast=False):
 		#retour_thread['valeur_bitcoin_cash'] = valeur_bitcoin_cash_actuelle
 		retour_thread['valeur_bitcoin'] = valeur_bitcoin_actuelle
 		retour_thread['ethermine_data'] = mined_ether_actuel
-		retour_thread['thread_en_cours'] = False
-		get_data(retour_thread, get_forecast=False)
+		# retour_thread['thread_en_cours'] = False
+		# get_data(retour_thread, get_forecast=False)
 
 	
 	retour_thread['thread_en_cours'] = False
@@ -687,7 +687,7 @@ if AnimationLoopSettings.ENABLED:
 
 surface = pygame.Surface(resolution)
 
-status_loading_text = "Ajustement Police"
+# status_loading_text = "Ajustement Police"
 
 pygame.font.init()
 
@@ -770,6 +770,8 @@ random_number_color = randint(0, 59)
 
 couleur_titre_countdown = couleur_fond_inverse
 
+temps_restant = "{}:{}:{}:{}".format('00', '00', '00', '00')
+
 text_jour_semaine_couleur = couleur_fond_inverse
 
 ssl_context = ssl._create_unverified_context()
@@ -781,7 +783,7 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C", {'couleur': c
 				 #'valeur_litecoin': "##.##$",
 				 #'valeur_bitcoin_cash': "###.##$",
 				 'valeur_ethereum': "###.##$",
-				 'ethermine_data': ['#.##### ETH', '###.##$', '##.#MH/s'],
+				 'ethermine_data': ['#.##### ETH', '###.##$', '##.# MH/s'],
 				 'fetching_animation_text': "",
 				 'thread_en_cours': False,
 				 'weather_animation' : ''}
@@ -839,7 +841,8 @@ raindrop_list = []
 notification_active = False
 
 notifications = {"fps": 4,
-				 "10:00": ["BANANA", "TIME"],
+				 "07:15": ["BROSSE", "TES DENTS"],
+				 "09:30": ["DEVL", "TIME"],
 				 "12:00": ["À LA", "BOUFFE"]}
 
 if ClockSettings.DEBUG_MODE:
@@ -1210,7 +1213,6 @@ while en_fonction:
 		texte_rect.bottom = int(texte_top)
 		ecran.blit(texte, texte_rect)
 		
-		
 		texte = font_25.render(noms_jours_semaine[num_jour_semaine], 1, text_jour_semaine_couleur, couleur_fond)
 		texte_rect = texte.get_rect(center=(largeur - centre_date, 0))
 		texte_rect.top = 0
@@ -1236,24 +1238,25 @@ while en_fonction:
 		
 		# Countdown timer
 		if ClockSettings.ENABLE_COUNTDOWN_TIMER:
-			# Countdown normal
-			temps_restant = datetime.datetime(2021, 7, 1, 10, 00) - maintenant
-			# Fin de journée
-			# temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
-			
-			temps_restant = temps_restant.days * 24 * 3600 + temps_restant.seconds
-			
-			temps_restant_mins, temps_restant_secs = divmod(temps_restant, 60)
-			temps_restant_heures, temps_restant_mins = divmod(temps_restant_mins, 60)
-			temps_restant_jours, temps_restant_heures = divmod(temps_restant_heures, 24)
-			
-			temps_restant_jours = "%02d" % (temps_restant_jours)
-			temps_restant_heures = "%02d" % (temps_restant_heures)
-			temps_restant_mins = "%02d" % (temps_restant_mins)
-			temps_restant_secs = "%02d" % (temps_restant_secs)
-			
-			
-			temps_restant = "{}:{}:{}:{}".format(temps_restant_jours, temps_restant_heures, temps_restant_mins, temps_restant_secs)
+			if changement_seconde:
+				# Countdown normal
+				temps_restant = datetime.datetime(2021, 8, 19, 10, 00) - maintenant
+				# Fin de journée
+				# temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
+				
+				temps_restant = temps_restant.days * 24 * 3600 + temps_restant.seconds
+				
+				temps_restant_mins, temps_restant_secs = divmod(temps_restant, 60)
+				temps_restant_heures, temps_restant_mins = divmod(temps_restant_mins, 60)
+				temps_restant_jours, temps_restant_heures = divmod(temps_restant_heures, 24)
+				
+				temps_restant_jours = "%02d" % (temps_restant_jours)
+				temps_restant_heures = "%02d" % (temps_restant_heures)
+				temps_restant_mins = "%02d" % (temps_restant_mins)
+				temps_restant_secs = "%02d" % (temps_restant_secs)
+				
+				
+				temps_restant = "{}:{}:{}:{}".format(temps_restant_jours, temps_restant_heures, temps_restant_mins, temps_restant_secs)
 			
 			texte = font_25.render(temps_restant, 1, couleur_fond_inverse, couleur_fond)
 			texte_rect = texte.get_rect()
@@ -1266,7 +1269,7 @@ while en_fonction:
 			# Smooth
 			couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
 			
-			texte = font_17.render("Home :D", 1, couleur_titre_countdown, couleur_fond)
+			texte = font_17.render("Chalet!", 1, couleur_titre_countdown, couleur_fond)
 			texte_top = texte_rect.top
 			texte_rect = texte.get_rect()
 			texte_rect.right = int(largeur - (2 * size_mult))
