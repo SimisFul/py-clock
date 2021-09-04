@@ -18,11 +18,11 @@ class ClockSettings(object):
 
 class AnimationLoopSettings(object):
 	ENABLED = True
-	DIRECTORY = 'ethergb'
-	FPS = 10.0
+	DIRECTORY = 'eth-sharp'
+	FPS = 20.0
 	SCALE = 0.34
 	# Pour la position, le chiffre est un pourcentage de l'ecran
-	CENTER_X_PERCENT = 91.0
+	CENTER_X_PERCENT = 90.9
 	CENTER_Y_PERCENT = 50.0
 	
 	
