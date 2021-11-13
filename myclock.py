@@ -10,7 +10,7 @@ class ClockSettings(object):
 	BACKGROUND_COLOR = [0, 0, 0]
 	FRAMERATE = 60 # None = unlimited fps
 	FONT = "moonget.ttf"
-	FULLSCREEN = False
+	FULLSCREEN = True
 	WINDOWED_WIDTH = 1280
 	ENABLE_LOADING_ANIMATION = True
 	RASPI2FB_CHECK = False
@@ -847,6 +847,9 @@ notifications = {"fps": 4,
 
 if ClockSettings.DEBUG_MODE:
 	retour_thread['fetching_animation_text'] = None
+	couleur_arc_secondes = [255, 0, 0]
+else:
+	couleur_arc_secondes = [0, 0, 0]
 
 
 if ClockSettings.FULLSCREEN:
@@ -1022,7 +1025,6 @@ while en_fonction:
 					pygame.draw.rect(surface, [100, 100, 100], [0, 0, largeur, hauteur])
 				else:
 					pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
-					weather_animation = ''
 				pygame.draw.circle(surface, [0, 0, 0], [largeur//2, hauteur//2], int(155 * size_mult))
 				pygame.draw.circle(surface, [25, 25, 25], [largeur//2, hauteur//2], int(36 * size_mult))
 				Thread(target=get_data, args=(retour_thread, True)).start()
@@ -1066,6 +1068,10 @@ while en_fonction:
 				pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes, math.radians(90-((360*(minute_changeante/(120.0/draw_from))/60))), math.radians(90), int(30 * size_mult))
 				pygame.draw.arc(surface, seconde_a_couleur((heure_changeante*60)/12), rect_arc_heures, math.radians(90-((360*(heure_changeante/(120.0/draw_from)))/12)), math.radians(90), int(40 * size_mult))
 
+			pygame.draw.arc(surface, couleur_arc_secondes, rect_arc_secondes, math.radians(75-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
+			pygame.draw.arc(surface, couleur_arc_secondes, rect_arc_secondes, math.radians(76-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
+			pygame.draw.arc(surface, couleur_arc_secondes, rect_arc_secondes, math.radians(77-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
+
 			
 		else:
 			#Couleurs secondes
@@ -1082,9 +1088,9 @@ while en_fonction:
 	
 		
 		#Arc secondes (noir)
-		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(75-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
-		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(76-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
-		pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(77-degree_secondes), math.radians(111-degree_secondes), int(34 * size_mult))
+		pygame.draw.arc(surface, couleur_arc_secondes, rect_arc_secondes, math.radians(75-degree_secondes), math.radians(80-degree_secondes), int(34 * size_mult))
+		pygame.draw.arc(surface, couleur_arc_secondes, rect_arc_secondes, math.radians(76-degree_secondes), math.radians(80-degree_secondes), int(34 * size_mult))
+		pygame.draw.arc(surface, couleur_arc_secondes, rect_arc_secondes, math.radians(77-degree_secondes), math.radians(80-degree_secondes), int(34 * size_mult))
 			
 		ecran.blit(surface, [0, 0])
 		
