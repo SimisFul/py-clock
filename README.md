@@ -2,7 +2,7 @@
 
 ![Alt text](screenshot.png?raw=true "Screenshot")
 
-A Python 3 clock made using Pygame.
+A Python 3 clock made using Pygame 1.9.6.
 
 This is a personnal projet I made for myself and after some demands for the source code, I have uploaded it here.
 
