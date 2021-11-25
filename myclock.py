@@ -982,7 +982,7 @@ while en_fonction:
         if do_arc_cleanup and minute < 1:
             num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
 
-            cleanup_size = (80 * size_mult) if heure == 7 else (35 * size_mult)
+            cleanup_size = (80 * size_mult) if heure == 0 else (35 * size_mult)
             arc_cleanup_status += (arc_cleanup_status * duree_last_frame)
 
             arc_cleanup_status = arc_cleanup_status if arc_cleanup_status < cleanup_size else cleanup_size
