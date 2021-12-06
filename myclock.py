@@ -1,6 +1,7 @@
 # SI VOUS N'ETES PAS SIMON ET QUE VOUS LISEZ CE CODE, SACHEZ QUE CE N'EST PAS DU BEAU CODE
 # coding: utf-8
 
+
 class ClockSettings(object):
     ENABLE_COUNTDOWN_TIMER = True
     DEBUG_MODE = False
@@ -10,8 +11,8 @@ class ClockSettings(object):
     FRAMERATE = 60  # None = unlimited fps
     FONT = "moonget.ttf"
     FULLSCREEN = False
-    WINDOWED_WIDTH = 900
-    ENABLE_LOADING_ANIMATION = True
+    WINDOWED_WIDTH = 1200
+    ENABLE_LOADING_ANIMATION = False
     RASPI2FB_CHECK = False
 
 
@@ -157,7 +158,7 @@ os.system('cls' if os.name == 'nt' else 'clear')
 print("Initializing...")
 
 import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, sys
-from random import randint
+from random import randint, uniform
 
 old_stdout = sys.stdout
 sys.stdout = open(os.devnull, 'w')
@@ -188,7 +189,7 @@ def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
 def get_data(retour_thread, get_forecast=False):
     if ClockSettings.DEBUG_MODE:
         print("SKIPPING REQUESTS FOR DEBUG")
-        # retour_thread['weather_animation'] = 'vergla'
+        # retour_thread['weather_animation'] = 'neige'
         retour_thread['thread_en_cours'] = False
         return True
 
@@ -568,7 +569,8 @@ def get_snowflake():
     return {'pos_y': int(-randint(10, 25) * size_mult),
             'pos_x': randint(mult_five, largeur - mult_five),
             'vit_y': randint(hauteur // 10, hauteur // 7),
-            'vit_x': randint(-largeur // 15, largeur // 15)}
+            'vit_x': randint(-largeur // 15, largeur // 15),
+            'weight': uniform(0.5, 1.0)}
 
 
 def get_raindrop():
@@ -580,26 +582,37 @@ def get_raindrop():
 
 
 def render_snowing():
+    global wind_speed
     if changement_seconde:
+        wind_speed = randint(-largeur // 10, largeur // 10)
         for snowflake in snowflake_list:
             if snowflake['pos_y'] > hauteur:
                 snowflake_list.remove(snowflake)
         snowflake_list.append(get_snowflake())
 
+    snowflake_radius = int(7 * size_mult)
+
     for snowflake in snowflake_list:
-        if snowflake['pos_x'] < 0 or snowflake['pos_x'] > largeur:
-            snowflake['vit_x'] = - snowflake['vit_x']
-        if changement_seconde:
-            snowflake['vit_x'] = randint(-largeur // 15, largeur // 15)
+        wind_effect = snowflake['vit_x'] + (wind_speed * (1.5 - snowflake['weight'])) * duree_last_frame
+
+        if abs(wind_effect) < largeur // (15 * snowflake['weight']):
+            snowflake['vit_x'] = wind_effect
 
         snowflake['pos_y'] += snowflake['vit_y'] * duree_last_frame
-        snowflake['pos_x'] += snowflake['vit_x'] * duree_last_frame
+        snowflake['pos_x'] = (snowflake['pos_x'] + snowflake['vit_x'] * duree_last_frame) % largeur
+
+        if snowflake['pos_x'] < snowflake_radius:
+            pygame.draw.circle(ecran, [255, 255, 255], [int(largeur + snowflake['pos_x']), int(snowflake['pos_y'])],
+                               int(snowflake['weight'] * snowflake_radius))
+        elif snowflake['pos_x'] > largeur - snowflake_radius:
+            pygame.draw.circle(ecran, [255, 255, 255], [int(snowflake['pos_x'] - largeur), int(snowflake['pos_y'])],
+                               int(snowflake['weight'] * snowflake_radius))
 
         pygame.draw.circle(ecran, [255, 255, 255], [int(snowflake['pos_x']), int(snowflake['pos_y'])],
-                           int(5 * size_mult))
+                           int(snowflake['weight'] * snowflake_radius))
 
 
-def render_raining(freezing=False):
+def render_raining(freezing=False, drizzle=False):
     if len(raindrop_list) < 20:
         for it in range(0, 20 - len(raindrop_list)):
             raindrop_list.append(get_raindrop())
@@ -608,9 +621,9 @@ def render_raining(freezing=False):
             if drop['pos_y'] > hauteur or drop['pos_x'] > largeur:
                 raindrop_list.remove(drop)
 
-    drop_angle = 4 * size_mult
-    drop_length = 15 * size_mult
-    drop_thicc = int(3 * size_mult)
+    drop_angle = int((2 if drizzle else 4) * size_mult)
+    drop_length = int((8 if drizzle else 15) * size_mult)
+    drop_thicc = int((1 if drizzle else 3) * size_mult)
     drop_color = [0, 200, 255] if freezing else [0, 0, 255]
 
     for drop in raindrop_list:
@@ -639,6 +652,7 @@ else:
 pygame.mouse.set_visible(False)
 
 ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
+pygame.display.set_caption('A cute little clock')
 lift_loading_master = True
 
 maintenant = datetime.datetime.now()
@@ -807,7 +821,7 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C",
 
 meteo_update_recent = True
 
-weather_animations = ['neige', 'poudre', 'vergla', 'pluie']
+weather_animations = ['neige', 'poudre', 'vergla', 'pluie', 'bruine']
 
 # clock = pygame.time.Clock()
 
@@ -851,6 +865,8 @@ text_anim_frame = 0
 
 duree_last_frame = 0
 
+wind_speed = 0
+
 snowflake_list = []
 
 raindrop_list = []
@@ -859,8 +875,7 @@ notification_active = False
 
 notifications = {"fps": 4,
                  "07:15": ["BROSSE", "TES DENTS"],
-                 "09:30": ["DEVL", "TIME"],
-                 "12:00": ["À LA", "BOUFFE"]}
+                 "11:54": ["À LA", "BOUFFE"]}
 
 if ClockSettings.DEBUG_MODE:
     retour_thread['fetching_animation_text'] = None
@@ -1353,7 +1368,8 @@ while en_fonction:
                 render_raining(freezing=True)
             elif retour_thread['weather_animation'] == 'pluie':
                 render_raining()
-
+            elif retour_thread['weather_animation'] == 'bruine':
+                render_raining(drizzle=True)
 
     else:
         # pygame.draw.rect(surface, [0, 255, 0], [0, 0, largeur/3, hauteur])
