@@ -189,7 +189,7 @@ def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
 def get_data(retour_thread, get_forecast=False):
     if ClockSettings.DEBUG_MODE:
         print("SKIPPING REQUESTS FOR DEBUG")
-        # retour_thread['weather_animation'] = 'neige'
+        retour_thread['weather_animation'] = 'neige'
         retour_thread['thread_en_cours'] = False
         return True
 
@@ -574,7 +574,7 @@ def get_snowflake():
 
 
 def get_raindrop():
-    vit_y = randint(hauteur // 2, hauteur)
+    vit_y = uniform(hauteur / 1.5, hauteur * 1.5)
     return {'pos_y': int(-randint(10, 50) * size_mult),
             'pos_x': randint(-largeur // 4, largeur),
             'vit_y': vit_y,
@@ -1306,11 +1306,6 @@ while en_fonction:
         texte_rect.top = int(texte_bottom - (10 * size_mult))
         ecran.blit(texte, texte_rect)
 
-        texte = font_17.render(calculated_fps, 1, couleur_fond_inverse, couleur_fond)
-        texte_rect = texte.get_rect()
-        texte_rect.left = (largeur * 7) // 11
-        ecran.blit(texte, texte_rect)
-
         # Countdown timer
         if ClockSettings.ENABLE_COUNTDOWN_TIMER:
             if changement_seconde or first_frame:
@@ -1352,6 +1347,13 @@ while en_fonction:
             ecran.blit(texte, texte_rect)
 
         # End countdown timer
+
+        texte = font_17.render(calculated_fps, 1, couleur_fond_inverse, couleur_fond)
+        texte_top = texte_rect.top
+        texte_rect = texte.get_rect()
+        texte_rect.right = int(largeur - (2 * size_mult))
+        texte_rect.bottom = texte_top if ClockSettings.ENABLE_COUNTDOWN_TIMER else hauteur
+        ecran.blit(texte, texte_rect)
 
         # render_spinning_image(vitesse_rpm=15)
 
