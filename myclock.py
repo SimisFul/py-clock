@@ -12,7 +12,7 @@ class ClockSettings(object):
     FONT = "moonget.ttf"
     FULLSCREEN = False
     WINDOWED_WIDTH = 1200
-    ENABLE_LOADING_ANIMATION = False
+    ENABLE_LOADING_ANIMATION = True
     RASPI2FB_CHECK = False
 
 
@@ -784,6 +784,8 @@ seconde_precedente = -1
 
 changement_heure = False
 
+changement_minute = False
+
 changement_seconde = False
 
 toggle_menu = False
@@ -958,9 +960,12 @@ while en_fonction:
 
         if minute != minute_precedente:
             # A chaque minute
+            changement_minute = True
             notification_active = temps in list(notifications.keys())
-            couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
+            # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
             text_jour_semaine_couleur = get_text_jour_semaine_couleur()
+        else:
+            changement_minute = False
 
         minute_precedente = minute
 
@@ -1337,7 +1342,9 @@ while en_fonction:
             # Disco
             # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
             # Smooth
-            couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
+            # couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
+            if changement_seconde:
+                couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
 
             texte = font_17.render("Noël :D", 1, couleur_titre_countdown, couleur_fond)
             texte_top = texte_rect.top
