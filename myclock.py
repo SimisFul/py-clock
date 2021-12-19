@@ -19,7 +19,7 @@ class ClockSettings(object):
 class AnimationLoopSettings(object):
     ENABLED = True
     DIRECTORY = 'eth-sharp'
-    FPS = 20.0
+    FPS = 30.0
     SCALE = 0.34
     # Pour la position, le chiffre est un pourcentage de l'ecran
     CENTER_X_PERCENT = 90.9
@@ -549,10 +549,9 @@ def sleep_until_next_frame():
     # ecran.blit(surface, [0, 0])
     # clock.tick(fps)
 
-    duree_frame = datetime.datetime.now() - maintenant
-    duree_frame = duree_frame.total_seconds()
+    duree_frame = (datetime.datetime.now() - maintenant).total_seconds()
 
-    if fps and abs(duree_frame) < 3:
+    if fps and not duree_frame > 1:
         # On diminue le sleep au cas ou la frame prends du temps a faire
         sleep_time = 1.0 / fps - duree_frame
 
@@ -709,9 +708,9 @@ if AnimationLoopSettings.ENABLED:
     loop_time = loop_images_len / AnimationLoopSettings.FPS
 # ---------------------------------------------------------------------------------------- #
 
-surface = pygame.Surface(resolution)
+status_loading_text = "Touches finales"
 
-# status_loading_text = "Ajustement Police"
+surface = pygame.Surface(resolution)
 
 pygame.font.init()
 
@@ -723,8 +722,6 @@ font_17 = pygame.font.Font(font_path, int(17 * font_ratio * size_mult))
 font_25 = pygame.font.Font(font_path, int(25 * font_ratio * size_mult))
 font_40 = pygame.font.Font(font_path, int(40 * font_ratio * size_mult))
 font_100 = pygame.font.Font(font_path, int(100 * font_ratio * size_mult))
-
-status_loading_text = "Touches finales"
 
 heure = maintenant.hour
 
@@ -775,6 +772,8 @@ liste_calculs_couleurs = [lambda seconde: [255, int((seconde / 10.0) * 255), 0],
                           lambda seconde: [255, 0, 255 - int((seconde / 10.0) * 255)]]
 
 en_fonction = True
+
+maintenant_precedent = -1
 
 minute_precedente = -1
 
@@ -897,6 +896,8 @@ if not ClockSettings.ENABLE_LOADING_ANIMATION:
 
 startup_complete = True
 
+Thread(target=get_data, args=(retour_thread, True)).start()
+
 while en_fonction:
     debut_frame = time.time()
 
@@ -940,6 +941,7 @@ while en_fonction:
 
         temps = time.strftime("%H:%M")
 
+        maintenant_precedent = maintenant
         maintenant = datetime.datetime.now()
 
         heure = maintenant.hour
@@ -949,8 +951,7 @@ while en_fonction:
 
         minute = maintenant.minute
 
-        changement_heure = ((minute < minute_precedente or heure < heure_precedente or seconde < seconde_precedente or (
-                    seconde - seconde_precedente) > 3) and seconde > 0) and minute > 0
+        changement_heure = abs(maintenant - maintenant_precedent).total_seconds() > 2
 
         if changement_heure:
             print("Time change detected")
@@ -1071,7 +1072,6 @@ while en_fonction:
                     pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
                 pygame.draw.circle(surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(155 * size_mult))
                 pygame.draw.circle(surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(36 * size_mult))
-                Thread(target=get_data, args=(retour_thread, True)).start()
                 random_number_color = randint(0, 59)
                 num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
                 fps = ClockSettings.FRAMERATE
@@ -1407,7 +1407,7 @@ while en_fonction:
     duree_last_frame = sleep_until_next_frame()
 
     if changement_seconde:
-        calculated_fps = '{} fps'.format(int(1.0 / duree_last_frame) if duree_last_frame else '--')
+        calculated_fps = '{} fps'.format(round(1.0 / duree_last_frame) if duree_last_frame else '--')
 
 pygame.mouse.set_visible(False)
 pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
