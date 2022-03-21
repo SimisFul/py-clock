@@ -4,14 +4,14 @@
 
 class ClockSettings(object):
     ENABLE_COUNTDOWN_TIMER = True
-    DEBUG_MODE = False
+    DEBUG_MODE = True
     DEBUG_LOADING_ANIMATION = False
     ANIMATION_DURATION_SECONDS = 2.5
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = 60  # None = unlimited fps
     FONT = "moonget.ttf"
     FULLSCREEN = False
-    WINDOWED_WIDTH = 1200
+    WINDOWED_WIDTH = 900
     ENABLE_LOADING_ANIMATION = True
     RASPI2FB_CHECK = False
 
@@ -546,19 +546,16 @@ def get_font_ratio(font_path):
 
 def sleep_until_next_frame():
     pygame.display.update()
-    # ecran.blit(surface, [0, 0])
     # clock.tick(fps)
-
     duree_frame = (datetime.datetime.now() - maintenant).total_seconds()
 
-    if fps and not duree_frame > 1:
+    if fps and duree_frame <= 1:
         # On diminue le sleep au cas ou la frame prends du temps a faire
-        sleep_time = 1.0 / fps - duree_frame
+        sleep_time = (1.0 / fps - duree_frame)
 
         if sleep_time > 0:
             time.sleep(sleep_time)
-            duree_frame = datetime.datetime.now() - maintenant
-            duree_frame = duree_frame.total_seconds()
+            duree_frame = (datetime.datetime.now() - maintenant).total_seconds()
 
     return duree_frame
 
@@ -592,13 +589,14 @@ def render_snowing():
     snowflake_radius = int(7 * size_mult)
 
     for snowflake in snowflake_list:
-        wind_effect = snowflake['vit_x'] + (wind_speed * (1.5 - snowflake['weight'])) * duree_last_frame
+        if not changement_heure:
+            wind_effect = snowflake['vit_x'] + (wind_speed * (1.5 - snowflake['weight'])) * duree_last_frame
 
-        if abs(wind_effect) < largeur // (15 * snowflake['weight']):
-            snowflake['vit_x'] = wind_effect
+            if abs(wind_effect) < largeur // (15 * snowflake['weight']):
+                snowflake['vit_x'] = wind_effect
 
-        snowflake['pos_y'] += snowflake['vit_y'] * duree_last_frame
-        snowflake['pos_x'] = (snowflake['pos_x'] + snowflake['vit_x'] * duree_last_frame) % largeur
+            snowflake['pos_y'] += snowflake['vit_y'] * duree_last_frame
+            snowflake['pos_x'] = (snowflake['pos_x'] + snowflake['vit_x'] * duree_last_frame) % largeur
 
         if snowflake['pos_x'] < snowflake_radius:
             pygame.draw.circle(ecran, [255, 255, 255], [int(largeur + snowflake['pos_x']), int(snowflake['pos_y'])],
@@ -626,8 +624,9 @@ def render_raining(freezing=False, drizzle=False):
     drop_color = [0, 200, 255] if freezing else [0, 0, 255]
 
     for drop in raindrop_list:
-        drop['pos_y'] += drop['vit_y'] * duree_last_frame
-        drop['pos_x'] += drop['vit_x'] * duree_last_frame
+        if not changement_heure:
+            drop['pos_y'] += drop['vit_y'] * duree_last_frame
+            drop['pos_x'] += drop['vit_x'] * duree_last_frame
 
         pygame.draw.line(ecran, drop_color, [int(drop['pos_x']), int(drop['pos_y'])],
                          [int(drop['pos_x'] + drop_angle), int(drop['pos_y'] + drop_length)], drop_thicc)
@@ -657,7 +656,6 @@ lift_loading_master = True
 maintenant = datetime.datetime.now()
 
 fps = ClockSettings.FRAMERATE
-debut_frame = time.time()
 duree_last_frame = sleep_until_next_frame()
 lift_loading_master = True
 
@@ -859,6 +857,7 @@ calculated_fps = '{} fps'.format(fps or 1)
 # text_anim_frames = ["boi", "boiii", "boiiiii", "boiiiiiii"]
 # text_anim_frames = ["[\   ]", "[ \  ]", "[  \ ]", "[   \]", "[   /]", "[  / ]", "[ /  ]", "[/   ]"]
 text_anim_frames = ["[.oOo.]", "[..oOo]", "[o..oO]", "[Oo..o]", "[oOo..]"]
+# text_anim_frames = ["[..oOo..]", "[...oOo.]", "[....oOo]", "[o....oO]", "[Oo....o]", "[oOo....]", "[.oOo...]"]
 # text_anim_frames = ["[-=-  ]", "[ -=- ]", "[  -=-]", "[-  -=]", "[=-  -]"]
 # text_anim_frames = ["[do]", "[ob]", "[op]", "[qo]"]
 
@@ -875,7 +874,6 @@ raindrop_list = []
 notification_active = False
 
 notifications = {"fps": 4,
-                 "07:15": ["BROSSE", "TES DENTS"],
                  "11:54": ["À LA", "BOUFFE"]}
 
 if ClockSettings.DEBUG_MODE:
@@ -899,7 +897,8 @@ startup_complete = True
 Thread(target=get_data, args=(retour_thread, True)).start()
 
 while en_fonction:
-    debut_frame = time.time()
+    maintenant_precedent = maintenant
+    maintenant = datetime.datetime.now()
 
     for event in pygame.event.get():
         if event.type == pygame.MOUSEBUTTONUP:
@@ -940,9 +939,6 @@ while en_fonction:
     if not toggle_menu:
 
         temps = time.strftime("%H:%M")
-
-        maintenant_precedent = maintenant
-        maintenant = datetime.datetime.now()
 
         heure = maintenant.hour
 
