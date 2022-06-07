@@ -9,18 +9,18 @@ class ClockSettings(object):
     FRAMERATE = 60  # None = unlimited fps
     FONT = "moonget.ttf"
     FULLSCREEN = False
-    WINDOWED_WIDTH = 900
+    WINDOWED_WIDTH = 480
     ENABLE_LOADING_ANIMATION = True
     RASPI2FB_CHECK = False
 
 
 class AnimationLoopSettings(object):
     ENABLED = True
-    DIRECTORY = 'eth-sharp'
+    DIRECTORY = 'pride_flag'
     FPS = 30.0
-    SCALE = 0.34
+    SCALE = 0.24
     # Pour la position, le chiffre est un pourcentage de l'ecran
-    CENTER_X_PERCENT = 90.9
+    CENTER_X_PERCENT = 90.7
     CENTER_Y_PERCENT = 50.0
 
 
