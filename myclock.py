@@ -233,7 +233,7 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
         try:
             print("Requesting forecast")
 
-            retour_thread['detailed_info'] = "Localisation..." if geolocate else retour_thread['city_name']
+            retour_thread['detailed_info'] = "Géolocalisation..." if geolocate else retour_thread['city_name']
             retour_thread['temperature'][0] = None
             retour_thread['temperature'][1]['couleur'] = couleur_fond_inverse
             retour_thread['temperature'][1]['wiggle'] = 0
@@ -297,15 +297,18 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
                     if not en_fonction:
                         return False
 
-                    detailed_info = dict_data['siteData']['currentConditions']['condition']
-                    weather_icon = dict_data['siteData']['currentConditions']['iconCode']
+                    if dict_data['siteData']['currentConditions']:
+                        detailed_info = dict_data['siteData']['currentConditions']['condition']
+                        weather_icon = dict_data['siteData']['currentConditions']['iconCode']
 
-                    if '#text' not in weather_icon or not detailed_info:
-                        time.sleep(0.25)
+                        if '#text' not in weather_icon or not detailed_info:
+                            time.sleep(0.25)
+                        else:
+                            retour_thread['detailed_info'] = 'Location sélectionnée'
+                            time.sleep(1)
+                            break
                     else:
-                        retour_thread['detailed_info'] = 'Location sélectionnée'
-                        time.sleep(1)
-                        break
+                        time.sleep(0.25)
 
             if not geolocate:
                 url_response = urllib.request.urlopen(
@@ -319,7 +322,7 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
                     return False
 
             detailed_info = dict_data['siteData']['currentConditions']['condition']
-            weather_icon = dict_data['siteData']['currentConditions']['iconCode']['#text']
+            weather_icon = dict_data['siteData']['currentConditions']['iconCode']
             temperature = dict_data['siteData']['currentConditions']['temperature']['#text']
             pourcentage_pluie = dict_data['siteData']['forecastGroup']['forecast'][0]['abbreviatedForecast']['pop']
             retour_thread['city_name'] = dict_data['siteData']['location']['name']['#text']
@@ -329,19 +332,10 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
             else:
                 pourcentage_pluie = 0
 
-
-            # forecast_pos = 0
-            #
-            # for title_num in range(0, len(dict_data['feed']['entry'])):
-            #     if "Conditions actuelles:" in dict_data['feed']['entry'][title_num]['title']:
-            #         forecast_pos = title_num
-            #         break
-            #
-            # current_info = dict_data['feed']['entry'][forecast_pos]['title']
-            #
-            # current_info = current_info.split(" ")
-
-            # temperature = current_info.pop()
+            if '#text' in weather_icon:
+                weather_icon = weather_icon['#text']
+            else:
+                weather_icon = -1
 
             casted_temperature = float(temperature)
 
@@ -407,6 +401,7 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
             retour_thread['weather_icon'] = weather_icon_actuel
 
         except Exception as erreur:
+            # raise erreur
             print(erreur)
             retour_thread['detailed_info'] = str(erreur)
             retour_thread['temperature'][0] = "Erreur"
@@ -987,7 +982,8 @@ raindrop_list = []
 notification_active = False
 
 notifications = {"fps": 4,
-                 "11:54": ["À LA", "BOUFFE"]}
+                 "11:54": ["À LA", "BOUFFE"],
+                 "15:59": ["BON", "J'DÉCRISS"]}
 
 
 couleur_arc_secondes = [0, 0, 0]
