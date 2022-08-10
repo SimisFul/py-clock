@@ -219,6 +219,7 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
     # valeur_bitcoin_cash_actuelle = retour_thread['valeur_bitcoin_cash']
     valeur_ethereum_actuelle = retour_thread['valeur_ethereum']
     mined_ether_actuel = retour_thread['ethermine_data']
+    dict_data = {}
 
     internet_access = ping_this('http://google.com')
 
@@ -301,90 +302,101 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
 
                     if '#text' not in weather_icon or not detailed_info:
                         time.sleep(0.25)
-                        continue
-
-                    retour_thread['detailed_info'] = 'Location sélectionnée'
-
-                    time.sleep(1)
-                    weather_icon = weather_icon['#text']
-                    temperature = dict_data['siteData']['currentConditions']['temperature']['#text']
-                    pourcentage_pluie = dict_data['siteData']['forecastGroup']['forecast'][0]['abbreviatedForecast']['pop']
-                    retour_thread['city_name'] = dict_data['siteData']['location']['name']['#text']
-
-                    if '#text' in pourcentage_pluie:
-                        pourcentage_pluie = pourcentage_pluie['#text']
                     else:
-                        pourcentage_pluie = 0
+                        retour_thread['detailed_info'] = 'Location sélectionnée'
+                        time.sleep(1)
+                        break
+
+            if not geolocate:
+                url_response = urllib.request.urlopen(
+                    'https://dd.weather.gc.ca/citypage_weather/xml/QC/' + retour_thread['city_id'] + '_f.xml',
+                    timeout=60,
+                    context=ssl_context)
+                dict_data = xmltodict.parse(url_response.read())
+                url_response.close()
+
+                if not en_fonction:
+                    return False
+
+            detailed_info = dict_data['siteData']['currentConditions']['condition']
+            weather_icon = dict_data['siteData']['currentConditions']['iconCode']['#text']
+            temperature = dict_data['siteData']['currentConditions']['temperature']['#text']
+            pourcentage_pluie = dict_data['siteData']['forecastGroup']['forecast'][0]['abbreviatedForecast']['pop']
+            retour_thread['city_name'] = dict_data['siteData']['location']['name']['#text']
+
+            if '#text' in pourcentage_pluie:
+                pourcentage_pluie = pourcentage_pluie['#text']
+            else:
+                pourcentage_pluie = 0
 
 
-                    # forecast_pos = 0
-                    #
-                    # for title_num in range(0, len(dict_data['feed']['entry'])):
-                    #     if "Conditions actuelles:" in dict_data['feed']['entry'][title_num]['title']:
-                    #         forecast_pos = title_num
-                    #         break
-                    #
-                    # current_info = dict_data['feed']['entry'][forecast_pos]['title']
-                    #
-                    # current_info = current_info.split(" ")
+            # forecast_pos = 0
+            #
+            # for title_num in range(0, len(dict_data['feed']['entry'])):
+            #     if "Conditions actuelles:" in dict_data['feed']['entry'][title_num]['title']:
+            #         forecast_pos = title_num
+            #         break
+            #
+            # current_info = dict_data['feed']['entry'][forecast_pos]['title']
+            #
+            # current_info = current_info.split(" ")
 
-                    # temperature = current_info.pop()
+            # temperature = current_info.pop()
 
-                    casted_temperature = float(temperature)
+            casted_temperature = float(temperature)
 
-                    if casted_temperature <= -15:
-                        # fait frette
-                        couleur_temperature = [102, 255, 255]
+            if casted_temperature <= -15:
+                # fait frette
+                couleur_temperature = [102, 255, 255]
 
-                        if casted_temperature <= -18:
-                            retour_thread['temperature'][1]['wiggle'] = abs(casted_temperature + 17) / 2.0
-                    elif casted_temperature >= 20:
-                        # fait chaud
-                        if casted_temperature > 30:
-                            niveau_vert = 68
-                        else:
-                            niveau_vert = int((30 - casted_temperature) * 18.7) + 68
+                if casted_temperature <= -18:
+                    retour_thread['temperature'][1]['wiggle'] = abs(casted_temperature + 17) / 2.0
+            elif casted_temperature >= 20:
+                # fait chaud
+                if casted_temperature > 30:
+                    niveau_vert = 68
+                else:
+                    niveau_vert = int((30 - casted_temperature) * 18.7) + 68
 
-                        couleur_temperature = [255, niveau_vert, 68]
+                couleur_temperature = [255, niveau_vert, 68]
+            else:
+                couleur_temperature = couleur_fond_inverse
+
+            if int(pourcentage_pluie) > 0:
+                pourcentage_pluie += '%'
+            else:
+                pourcentage_pluie = ' '
+
+            if detailed_info:
+                for animation in weather_animations:
+                    if animation in detailed_info.lower():
+                        retour_thread['weather_animation'] = animation
+                        break
                     else:
-                        couleur_temperature = couleur_fond_inverse
-
-                    if int(pourcentage_pluie) > 0:
-                        pourcentage_pluie += '%'
-                    else:
-                        pourcentage_pluie = ' '
-
-                    if detailed_info:
-                        for animation in weather_animations:
-                            if animation in detailed_info.lower():
-                                retour_thread['weather_animation'] = animation
-                                break
-                            else:
-                                retour_thread['weather_animation'] = ''
+                        retour_thread['weather_animation'] = ''
 
 
-                    # false_alerts = ["Aucune veille ou alerte",
-                    #                 "BULLETIN",
-                    #                 "TERMINÉ"]
+            # false_alerts = ["Aucune veille ou alerte",
+            #                 "BULLETIN",
+            #                 "TERMINÉ"]
 
-                    # S'il y a plusieurs alertes, on prend la premiere qui est vraie
-                    # while forecast_pos > 0:
-                    #     alert_title = dict_data['feed']['entry'][forecast_pos - 1]['title']
-                    #
-                    #     # Si aucune des fausses alertes ne correspond a l'alerte en cours, c'est une vraie alerte
-                    #     if not any(alert.upper() in alert_title.upper() for alert in false_alerts):
-                    #         detailed_info = dict_data['feed']['entry'][forecast_pos - 1]['title'].replace(', Québec', '')
-                    #         detailed_info = detailed_info.replace('EN VIGUEUR', '').rstrip()
-                    #         forecast_pos = 0
-                    #     else:
-                    #         forecast_pos -= 1
+            # S'il y a plusieurs alertes, on prend la premiere qui est vraie
+            # while forecast_pos > 0:
+            #     alert_title = dict_data['feed']['entry'][forecast_pos - 1]['title']
+            #
+            #     # Si aucune des fausses alertes ne correspond a l'alerte en cours, c'est une vraie alerte
+            #     if not any(alert.upper() in alert_title.upper() for alert in false_alerts):
+            #         detailed_info = dict_data['feed']['entry'][forecast_pos - 1]['title'].replace(', Québec', '')
+            #         detailed_info = detailed_info.replace('EN VIGUEUR', '').rstrip()
+            #         forecast_pos = 0
+            #     else:
+            #         forecast_pos -= 1
 
-                    retour_thread['detailed_info'] = detailed_info if detailed_info else retour_thread['city_name']
-                    retour_thread['temperature'][0] = temperature + '°C'
-                    retour_thread['temperature'][1]['couleur'] = couleur_temperature
-                    retour_thread['pourcent_pluie'] = pourcentage_pluie
-                    retour_thread['weather_icon'] = str(weather_icon) + '.png'
-                    break
+            retour_thread['detailed_info'] = detailed_info if detailed_info else retour_thread['city_name']
+            retour_thread['temperature'][0] = temperature + '°C'
+            retour_thread['temperature'][1]['couleur'] = couleur_temperature
+            retour_thread['pourcent_pluie'] = pourcentage_pluie
+            retour_thread['weather_icon'] = str(weather_icon) + '.png'
 
         except ValueError:
             retour_thread['detailed_info'] = detailed_info_actuelle
