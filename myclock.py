@@ -1358,8 +1358,20 @@ while en_fonction:
             pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
                             math.radians(90 - ((360 * minute_changeante / 60))),
                             math.radians(90), int(28 * size_mult))
+            pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
+                            math.radians(91 - ((360 * minute_changeante / 60))),
+                            math.radians(90), int(28 * size_mult))
+            pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
+                            math.radians(92 - ((360 * minute_changeante / 60))),
+                            math.radians(90), int(28 * size_mult))
             pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
                             math.radians(90 - ((360 * heure_changeante) / 12)),
+                            math.radians(90), int(38 * size_mult))
+            pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
+                            math.radians(91 - ((360 * heure_changeante) / 12)),
+                            math.radians(90), int(38 * size_mult))
+            pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
+                            math.radians(92 - ((360 * heure_changeante) / 12)),
                             math.radians(90), int(38 * size_mult))
         """DISABLED ARCS
         pygame.draw.arc(surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
