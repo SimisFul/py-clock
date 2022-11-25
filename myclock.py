@@ -3,14 +3,15 @@
 class ClockSettings(object):
     ENABLE_COUNTDOWN_TIMER = False
     DEBUG_MODE = False
-    DEBUG_LOADING_ANIMATION = False
     ANIMATION_DURATION_SECONDS = 2.5
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
     FONT = "moonget.ttf"
-    FULLSCREEN = False
-    WINDOWED_WIDTH = 600
+    FULLSCREEN = True
+    WINDOWED_WIDTH = 480
     ENABLE_LOADING_ANIMATION = True
+    LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
+    DEBUG_LOADING_ANIMATION = False
     RASPI2FB_CHECK = False
 
 
@@ -31,7 +32,7 @@ class EthermineAPI(object):
 
 
 # -------------------------------------LOADING SCREEN------------------------------------- #
-def show_loading_screen(largeur, hauteur):
+def show_progress_loading_screen(largeur, hauteur):
     global lift_loading_master
 
     loading_master = tk.Tk()
@@ -96,6 +97,106 @@ def show_loading_screen(largeur, hauteur):
     loading_master.destroy()
 
 
+def show_peek_loading_screen(largeur, hauteur):
+    global lift_loading_master
+    global wait_for_peek_animation
+
+    loading_master = tk.Tk()
+
+    loading_master.minsize(width=largeur, height=hauteur)
+    loading_master.attributes("-fullscreen", ClockSettings.FULLSCREEN)
+    # loading_master.attributes("-topmost", True)
+    loading_master.config(cursor="none")
+    loading_master["bg"] = "black"
+    loading_master.update()
+    canvas = tk.Canvas(loading_master, width=hauteur, height=hauteur, highlightthickness=0)
+    background = 'black'
+    canvas.configure(background=background)
+    canvas.pack(side=tk.BOTTOM)
+    circle_secs = canvas.create_oval(int(8 * size_mult),
+                                     int(8 * size_mult),
+                                     hauteur - (8 * size_mult),
+                                     hauteur - (8 * size_mult),
+                                     fill='black',
+                                     width=0)
+    circle_mins = canvas.create_oval(int(42 * size_mult),
+                                     int(42 * size_mult),
+                                     hauteur - (42 * size_mult),
+                                     hauteur - (42 * size_mult),
+                                     fill='black',
+                                     outline=background,
+                                     width=int(5 * size_mult))
+    circle_hours = canvas.create_oval(int(78 * size_mult),
+                                      int(78 * size_mult),
+                                      hauteur - (78 * size_mult),
+                                      hauteur - (78 * size_mult),
+                                      fill='black',
+                                      outline=background,
+                                      width=int(5 * size_mult))
+    circle_time = canvas.create_oval((hauteur / 2) - int(38 * size_mult),
+                                     (hauteur / 2) - int(38 * size_mult),
+                                     (hauteur / 2) + int(38 * size_mult),
+                                     (hauteur / 2) + int(38 * size_mult),
+                                     fill='black',
+                                     outline=background,
+                                     width=int(5 * size_mult))
+    circle_list = [circle_time, circle_hours, circle_mins, circle_secs, circle_secs]
+    loading_master.update()
+    duree_frame = 0
+    color_strength = 0.0
+    color_strength_limit = 40.0
+    active_circle = 0
+    first_loop = True
+    while not startup_complete:
+        debut_frame = time.time()
+
+        color_strength = color_strength + duree_frame * (200 if first_loop else 100)
+
+        if color_strength >= color_strength_limit:
+            color_strength = color_strength_limit
+
+        color_strength_reversed = 59.0 - (color_strength if color_strength >= 19 else 19.0)
+
+        color_string = str(int(color_strength)).zfill(2)
+        color_string_reversed = str(int(color_strength_reversed)).zfill(2)
+
+        canvas.itemconfigure(circle_list[active_circle], fill='#' + color_string + color_string + color_string)
+
+        if active_circle != 0:
+            canvas.itemconfigure(circle_list[active_circle - 1],
+                                 fill='#' + color_string_reversed + color_string_reversed + color_string_reversed)
+
+        loading_master.update()
+
+        if color_strength == color_strength_limit:
+            active_circle += 1
+            if active_circle == len(circle_list):
+                active_circle = 0
+                first_loop = False
+                time.sleep(0.2)
+                wait_for_peek_animation = False
+                for it in range(8):
+                    time.sleep(0.1)
+                    if startup_complete:
+                        break
+                wait_for_peek_animation = True
+
+            color_strength = 0.0 if first_loop else 19.0
+
+        duree_frame = (time.time() - debut_frame)
+        duree_frame = 0 if duree_frame > 0.15 else duree_frame
+
+
+    loading_master.withdraw()
+    # canvas.config(width=1, height=1)
+    # loading_master.minsize(width=200, height=200)
+    # loading_master["bg"] = "red"
+    # loading_master.lift()
+    # loading_master.geometry('10x10+' + str(int(largeur/2)) + '+' + str(int(hauteur/2)))
+    loading_master.destroy()
+    lift_loading_master = False
+
+
 # ---------------------------------------------------------------------------------------- #
 
 print("The clock has started running!")
@@ -110,6 +211,7 @@ if os.name == "nt":
 status_loading_text = "Modules"
 startup_complete = False
 lift_loading_master = False
+wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION == 'peek' and ClockSettings.ENABLE_LOADING_ANIMATION
 
 loading_master = tk.Tk()
 
@@ -148,38 +250,43 @@ loading_master.attributes("-fullscreen", ClockSettings.FULLSCREEN)
 loading_master.config(cursor="none")
 loading_master["bg"] = "black"
 loading_master.update()
-loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white", bg="black")
-loading_label.place(x=(largeur / 2),
-                    y=(hauteur / 2) - 20 * size_mult if ClockSettings.ENABLE_LOADING_ANIMATION else hauteur / 2,
-                    anchor='center')
-if ClockSettings.ENABLE_LOADING_ANIMATION:
+if not ClockSettings.ENABLE_LOADING_ANIMATION:
+    loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white",
+                             bg="black")
+    loading_label.place(x=(largeur / 2),
+                        y=(hauteur / 2),
+                        anchor='center')
+elif ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
+    loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white",
+                             bg="black")
+    loading_label.place(x=(largeur / 2),
+                        y=(hauteur / 2) - 20 * size_mult,
+                        anchor='center')
     status_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text=status_loading_text, fg="white",
                             bg="black")
     status_label.place(x=(largeur / 2), y=(hauteur / 2), anchor=tk.N)
-loading_master.update()
+    loading_master.update()
 
 from threading import Thread
 import time
 
 if ClockSettings.ENABLE_LOADING_ANIMATION:
-    Thread(target=show_loading_screen, args=(largeur, hauteur)).start()
-
+    if ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
+        Thread(target=show_progress_loading_screen, args=(largeur, hauteur)).start()
+    elif ClockSettings.LOADING_ANIMATION_SELECTION == 'peek':
+        Thread(target=show_peek_loading_screen, args=(largeur, hauteur)).start()
 
 os.system('cls' if os.name == 'nt' else 'clear')
 print("Initializing...")
 
-import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, sys, csv
+import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv
 from random import randint, uniform
 
-old_stdout = sys.stdout
-sys.stdout = open(os.devnull, 'w')
-
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 
-sys.stdout = old_stdout
-
 if ClockSettings.DEBUG_LOADING_ANIMATION:
-    time.sleep(4)
+    time.sleep(10)
     startup_complete = True
     exit()
 
@@ -748,14 +855,15 @@ if ClockSettings.DEBUG_MODE:
 
 status_loading_text = "Pygame"
 
-pygame.display.init()
-
 if ClockSettings.ENABLE_LOADING_ANIMATION:
-    loading_master.destroy()
+    loading_master.withdraw()
+    loading_master.update()
     lift_loading_master = True
 else:
     loading_master.lift()
     loading_master.update()
+
+pygame.display.init()
 
 pygame.mouse.set_visible(False)
 
@@ -831,7 +939,8 @@ for index in range(0, len(images_filenames)):
 
 status_loading_text = "Touches finales"
 
-surface = pygame.Surface(resolution)
+#surface = pygame.Surface(resolution)
+peek_surface = pygame.Surface(resolution)
 
 pygame.font.init()
 
@@ -1002,22 +1111,48 @@ notification_active = False
 notifications = {"11:55": ["À LA", "BOUFFE"],
                  "15:59": ["BON", "J'DÉCRISS"]}
 
-
 couleur_arc_secondes = [0, 0, 0]
+
+pygame.draw.circle(peek_surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
+pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(120.5 * size_mult), int(5 * size_mult))
+pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
+pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
+pygame.display.update()
+
+peek_animating = False
+peek_radius_limit = math.sqrt(hauteur**2 + largeur**2) / 2
+
+
+while wait_for_peek_animation:
+    time.sleep(0.05)
 
 if ClockSettings.FULLSCREEN:
     ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
 else:
     ecran = pygame.display.set_mode(resolution)
 
+if ClockSettings.LOADING_ANIMATION_SELECTION == 'peek' and ClockSettings.ENABLE_LOADING_ANIMATION:
+    ecran.blit(peek_surface, [0, 0])
+    pygame.display.update()
+    lift_loading_master = True
+    startup_complete = True
+    while lift_loading_master:
+        continue
+
+    pygame.display.update()
+    peek_animating = True
+    peek_surface.set_colorkey([255, 255, 255])
+
+peek_time = time.time()
+
 print("Done initialising!")
 
-
-if not ClockSettings.ENABLE_LOADING_ANIMATION:
-    loading_master.destroy()
+loading_master.destroy()
 
 Thread(target=get_data, args=(retour_thread, True, True)).start()
 frame_counter = 0
+
+surface = pygame.Surface(resolution)
 
 fps_start_time = time.time()
 
@@ -1060,7 +1195,6 @@ while en_fonction:
 			ecran = pygame.display.set_mode(resolution, pygame.RESIZABLE)
 			surface = pygame.Surface(resolution)
 			animation_active_frame = 0"""
-
 
     temps = time.strftime("%H:%M")
 
@@ -1314,8 +1448,8 @@ while en_fonction:
     texte = font_25.render(str(seconde), 1, [255, 255, 255])
     texte = pygame.transform.rotozoom(texte, -degree_secondes + (180 if 45 > seconde_precise > 15 else 0), 1)
     texte_rect = texte.get_rect(center=(
-    int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 135 * size_mult),
-    int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 135 * size_mult)))
+        int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 135 * size_mult),
+        int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 135 * size_mult)))
     ecran.blit(texte, texte_rect)
 
     texte = font_17.render(retour_thread['detailed_info'], 1, couleur_fond_inverse, couleur_fond)
@@ -1531,8 +1665,8 @@ while en_fonction:
             render_raining(drizzle=True)
 
     # -------------------------------------NOTIFICATIONS------------------------------------- #
-    #notification_active = True
-    #notifications[temps] = ["DEBUG", "TEST"]
+    # notification_active = True
+    # notifications[temps] = ["DEBUG", "TEST"]
     if notification_active:
         big_top_text = notifications[temps][0]
         big_bottom_text = notifications[temps][1]
@@ -1570,6 +1704,18 @@ while en_fonction:
         texte_rect = texte.get_rect(center=((5 * largeur) // 6, (hauteur // 2)))
         ecran.blit(texte, texte_rect)
 
+    if peek_animating:
+        if time.time() - peek_time >= 0.5:
+            peek_radius = int(((time.time() - peek_time) - 0.5) * 250 * size_mult)
+            pygame.draw.circle(peek_surface, [255, 255, 255], [largeur // 2, hauteur // 2], peek_radius)
+            if int(5 * size_mult) < peek_radius:
+                pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2], peek_radius, int(5 * size_mult))
+
+            if peek_radius > peek_radius_limit:
+                peek_animating = False
+
+        ecran.blit(peek_surface, [0, 0])
+
     duree_last_frame = sleep_until_next_frame()
 
     if not startup_complete:
@@ -1580,7 +1726,6 @@ while en_fonction:
         calculated_fps = '{} fps'.format(round(frame_counter / (time.time() - fps_start_time)))
         frame_counter = 0
         fps_start_time = time.time()
-
 
 pygame.mouse.set_visible(False)
 pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
