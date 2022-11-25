@@ -7,7 +7,7 @@ class ClockSettings(object):
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
     FONT = "moonget.ttf"
-    FULLSCREEN = True
+    FULLSCREEN = False
     WINDOWED_WIDTH = 480
     ENABLE_LOADING_ANIMATION = True
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
@@ -279,11 +279,15 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 os.system('cls' if os.name == 'nt' else 'clear')
 print("Initializing...")
 
-import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv
+import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, sys
 from random import randint, uniform
 
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+old_stdout = sys.stdout
+sys.stdout = open(os.devnull, 'w')
+
 import pygame
+
+sys.stdout = old_stdout
 
 if ClockSettings.DEBUG_LOADING_ANIMATION:
     time.sleep(10)
@@ -965,9 +969,9 @@ seconde_precise = seconde + millisec / 1000000.0
 
 eloignement_secondes = int(10 * size_mult)
 
-eloignement_minutes = int(45 * size_mult)
+eloignement_minutes = int(46 * size_mult)
 
-eloignement_heures = int(80 * size_mult)
+eloignement_heures = int(81 * size_mult)
 
 if largeur > hauteur:
     rect_couleurs_secondes = [(largeur // 2) - (hauteur // 2) + eloignement_secondes, eloignement_secondes,
@@ -1149,7 +1153,9 @@ print("Done initialising!")
 
 loading_master.destroy()
 
-Thread(target=get_data, args=(retour_thread, True, True)).start()
+if ClockSettings.LOADING_ANIMATION_SELECTION != 'peek' or not ClockSettings.ENABLE_LOADING_ANIMATION:
+    Thread(target=get_data, args=(retour_thread, True, True)).start()
+
 frame_counter = 0
 
 surface = pygame.Surface(resolution)
@@ -1351,10 +1357,10 @@ while en_fonction:
         if draw_from:
             pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
                             math.radians(90 - ((360 * minute_changeante / 60))),
-                            math.radians(90), int(30 * size_mult))
+                            math.radians(90), int(28 * size_mult))
             pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
                             math.radians(90 - ((360 * heure_changeante) / 12)),
-                            math.radians(90), int(40 * size_mult))
+                            math.radians(90), int(38 * size_mult))
         """DISABLED ARCS
         pygame.draw.arc(surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
                         rect_arc_secondes, math.radians(75 - degree_secondes),
@@ -1707,12 +1713,12 @@ while en_fonction:
     if peek_animating:
         if time.time() - peek_time >= 0.5:
             peek_radius = int(((time.time() - peek_time) - 0.5) * 250 * size_mult)
+            pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2], peek_radius + int(5 * size_mult))
             pygame.draw.circle(peek_surface, [255, 255, 255], [largeur // 2, hauteur // 2], peek_radius)
-            if int(5 * size_mult) < peek_radius:
-                pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2], peek_radius, int(5 * size_mult))
 
             if peek_radius > peek_radius_limit:
                 peek_animating = False
+                Thread(target=get_data, args=(retour_thread, True, True)).start()
 
         ecran.blit(peek_surface, [0, 0])
 
