@@ -1,7 +1,7 @@
 # coding: utf-8
 
 class ClockSettings(object):
-    ENABLE_COUNTDOWN_TIMER = False
+    ENABLE_COUNTDOWN_TIMER = True
     DEBUG_MODE = False
     ANIMATION_DURATION_SECONDS = 2.5
     BACKGROUND_COLOR = [0, 0, 0]
@@ -9,6 +9,7 @@ class ClockSettings(object):
     FONT = "moonget.ttf"
     FULLSCREEN = False
     WINDOWED_WIDTH = 480
+    WINDOWED_HEIGHT = 320
     ENABLE_LOADING_ANIMATION = True
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
     DEBUG_LOADING_ANIMATION = False
@@ -186,7 +187,6 @@ def show_peek_loading_screen(largeur, hauteur):
         duree_frame = (time.time() - debut_frame)
         duree_frame = 0 if duree_frame > 0.15 else duree_frame
 
-
     loading_master.withdraw()
     # canvas.config(width=1, height=1)
     # loading_master.minsize(width=200, height=200)
@@ -206,6 +206,7 @@ import os
 
 if os.name == "nt":
     from ctypes import windll
+
     windll.user32.SetProcessDPIAware()
 
 status_loading_text = "Modules"
@@ -219,30 +220,18 @@ if ClockSettings.FULLSCREEN:
     largeur = loading_master.winfo_screenwidth()
     hauteur = loading_master.winfo_screenheight()
 
-    if largeur > hauteur:
-        fausse_largeur = hauteur * 1.5
-        size_mult = fausse_largeur / 480.0
-    else:
-        size_mult = hauteur / 480.0
-
 else:
     largeur = ClockSettings.WINDOWED_WIDTH
-    hauteur = (320 * largeur) / 480
-    size_mult = largeur / 480.0
+    hauteur = ClockSettings.WINDOWED_HEIGHT
 
-# Resolution test stuff
-# largeur = 320
-# hauteur = 240
-#
-# if largeur > hauteur:
-#     fausse_largeur = hauteur * 1.5
-#     size_mult = fausse_largeur / 480.0
-# else:
-#     size_mult = hauteur / 480.0
+if largeur > hauteur:
+    fausse_largeur = hauteur * 1.5
+    size_mult = fausse_largeur / 480.0
+else:
+    size_mult = hauteur / 480.0
 
-largeur = int(largeur)
-hauteur = int(hauteur)
-resolution = largeur, hauteur
+
+resolution = int(largeur), int(hauteur)
 
 # Juste le texte pour afficher le plus rapidement possible
 loading_master.minsize(width=largeur, height=hauteur)
@@ -265,7 +254,8 @@ elif ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
     status_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text=status_loading_text, fg="white",
                             bg="black")
     status_label.place(x=(largeur / 2), y=(hauteur / 2), anchor=tk.N)
-    loading_master.update()
+
+loading_master.update()
 
 from threading import Thread
 import time
@@ -496,7 +486,6 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
                         break
                     else:
                         retour_thread['weather_animation'] = ''
-
 
             # false_alerts = ["Aucune veille ou alerte",
             #                 "BULLETIN",
@@ -861,7 +850,6 @@ status_loading_text = "Pygame"
 
 if ClockSettings.ENABLE_LOADING_ANIMATION:
     loading_master.withdraw()
-    loading_master.update()
     lift_loading_master = True
 else:
     loading_master.lift()
@@ -943,7 +931,6 @@ for index in range(0, len(images_filenames)):
 
 status_loading_text = "Touches finales"
 
-#surface = pygame.Surface(resolution)
 peek_surface = pygame.Surface(resolution)
 
 pygame.font.init()
@@ -1039,6 +1026,31 @@ temps_restant = "{}:{}:{}:{}".format('00', '00', '00', '00')
 
 text_jour_semaine_couleur = couleur_fond_inverse
 
+texte = font_17.render('INITIAL TEXT', 0, [255, 255, 255])
+texte_rect = texte.get_rect()
+
+text_dict = {'temps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'seconde': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'detailed_info': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'temperature': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'pourcent_pluie': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'ethermine_data': [{'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+                                {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+                                {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect}],
+             'texte_mining': {'text': 'Mining', 'surface': font_17.render('Mining', True, couleur_fond_inverse, couleur_fond), 'rect': texte_rect},
+             'valeur_bitcoin': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'BTC': {'text': 'BTC', 'surface': font_17.render('BTC', True, couleur_fond_inverse, couleur_fond), 'rect': texte_rect},
+             'valeur_ethereum': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'ETH': {'text': 'ETH', 'surface': font_17.render('ETH', True, couleur_fond_inverse, couleur_fond), 'rect': texte_rect},
+             'fetching_animation': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'noms_jours_semaine': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect, 'color': couleur_fond_inverse},
+             'num_jour': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'noms_mois': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'temps_restant': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'titre_countdown': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect, 'color': couleur_fond_inverse},
+             'calculated_fps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             }
+
 ssl_context = ssl._create_unverified_context()
 
 retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C",
@@ -1124,8 +1136,7 @@ pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40
 pygame.display.update()
 
 peek_animating = False
-peek_radius_limit = math.sqrt(hauteur**2 + largeur**2) / 2
-
+peek_radius_limit = math.sqrt(hauteur ** 2 + largeur ** 2) / 2
 
 while wait_for_peek_animation:
     time.sleep(0.05)
@@ -1290,7 +1301,8 @@ while en_fonction:
 
     if not meteo_update_recent and minute % 5 == 0:
         get_forecast_too = minute % 20 == 5
-        Thread(target=get_data, args=(retour_thread, get_forecast_too)).start()
+        if not peek_animating:
+            Thread(target=get_data, args=(retour_thread, get_forecast_too)).start()
         if shuffle_images:
             for it in range(0, randint(1, len(spinning_images) - 1)):
                 spinning_images.append(spinning_images.pop(0))
@@ -1394,7 +1406,7 @@ while en_fonction:
                 degree_secondes_ligne = 360 - abs(degree_secondes_ligne) if degree_secondes_ligne < 0 else degree_secondes_ligne
                 if degree_minutes >= degree_secondes_ligne >= 0:
                     degree_secondes_ligne = math.radians(degree_secondes_ligne - 90)
-                    pygame.draw.line(surface, [it*80, 0, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
+                    pygame.draw.line(surface, [it * 80, 0, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
                                      (int((largeur / 2) + math.cos(degree_secondes_ligne) * 115 * size_mult),
                                       int((hauteur / 2) + math.sin(degree_secondes_ligne) * 115 * size_mult)),
                                      (int((largeur / 2) + math.cos(degree_secondes_ligne) * 86 * size_mult),
@@ -1459,164 +1471,160 @@ while en_fonction:
     if retour_thread['thread_en_cours'] or ClockSettings.DEBUG_MODE:
         text_anim_frame = int(millisec * len(text_anim_frames))
 
-    texte = font_25.render(temps, 1, [255, 255, 255])
-    texte_rect = texte.get_rect(center=((largeur // 2), (hauteur // 2)))
-    ecran.blit(texte, texte_rect)
+    if temps != text_dict['temps']['text']:
+        text_dict['temps']['text'] = temps
+        text_dict['temps']['surface'] = font_25.render(temps, True, [255, 255, 255])
+        text_dict['temps']['rect'] = text_dict['temps']['surface'].get_rect(center=((largeur // 2), (hauteur // 2)))
+    ecran.blit(text_dict['temps']['surface'], text_dict['temps']['rect'])
 
-    texte = font_25.render(str(seconde), 1, [255, 255, 255])
-    texte = pygame.transform.rotozoom(texte, -degree_secondes + (180 if 45 > seconde_precise > 15 else 0), 1)
+    if str(seconde) != text_dict['seconde']['text']:
+        text_dict['seconde']['text'] = str(seconde)
+        text_dict['seconde']['surface'] = font_25.render(str(seconde), True, [255, 255, 255])
+    texte = pygame.transform.rotozoom(text_dict['seconde']['surface'], -degree_secondes + (180 if 45 > seconde_precise > 15 else 0), 1)
     texte_rect = texte.get_rect(center=(
         int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 135 * size_mult),
         int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 135 * size_mult)))
     ecran.blit(texte, texte_rect)
 
-    texte = font_17.render(retour_thread['detailed_info'], 1, couleur_fond_inverse, couleur_fond)
-    texte_rect = texte.get_rect()
-    texte_rect.left = int(2 * size_mult)
-    ecran.blit(texte, texte_rect)
+    if retour_thread['detailed_info'] != text_dict['detailed_info']['text']:
+        text_dict['detailed_info']['text'] = retour_thread['detailed_info']
+        text_dict['detailed_info']['surface'] = font_17.render(retour_thread['detailed_info'], True, couleur_fond_inverse, couleur_fond)
+        text_dict['detailed_info']['rect'] = text_dict['detailed_info']['surface'].get_rect()
+        text_dict['detailed_info']['rect'].left = int(2 * size_mult)
+    ecran.blit(text_dict['detailed_info']['surface'], text_dict['detailed_info']['rect'])
 
-    texte = font_25.render(retour_thread['temperature'][0] or text_anim_frames[text_anim_frame], 1,
-                           retour_thread['temperature'][1]['couleur'])
-    texte_bottom = texte_rect.bottom
-    texte_rect = texte.get_rect()
-    texte_rect.top = texte_bottom
-    texte_rect.left = int(2 * size_mult)
-    texte_rect_final = texte_rect
+    if (retour_thread['temperature'][0] or text_anim_frames[text_anim_frame]) != text_dict['temperature']['text']:
+        text_dict['temperature']['text'] = retour_thread['temperature'][0] or text_anim_frames[text_anim_frame]
+        text_dict['temperature']['surface'] = font_25.render(retour_thread['temperature'][0] or text_anim_frames[text_anim_frame], True, retour_thread['temperature'][1]['couleur'])
+        text_dict['temperature']['rect'] = text_dict['temperature']['surface'].get_rect()
+        texte_bottom = text_dict['detailed_info']['rect'].bottom
+        text_dict['temperature']['rect'].top = texte_bottom
+        text_dict['temperature']['rect'].left = int(2 * size_mult)
+        text_dict['pourcent_pluie']['text'] = 'update me'
+    texte_rect_final = text_dict['temperature']['rect']
+    texte = text_dict['temperature']['surface']
     if retour_thread['temperature'][1]['wiggle'] != 0:
-        texte = pygame.transform.rotate(texte,
+        texte = pygame.transform.rotate(text_dict['temperature']['surface'],
                                         (retour_thread['temperature'][1]['wiggle'] * math.sin(millisec * 25)))
-        texte_rect_final = texte.get_rect(center=texte_rect.center)
+        texte_rect_final = texte.get_rect(center=text_dict['temperature']['rect'].center)
     ecran.blit(texte, texte_rect_final)
+
 
     if retour_thread['weather_icon']:
         image_rect = weather_icons[retour_thread['weather_icon']].get_rect()
-        image_rect.centery = texte_rect.centery
-        image_rect.left = texte_rect.right + (5 * size_mult)
+        image_rect.centery = texte_rect_final.centery
+        image_rect.left = text_dict['temperature']['rect'].right + (5 * size_mult)
         ecran.blit(weather_icons[retour_thread['weather_icon']], image_rect)
 
-    texte = font_17.render(retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame], 1,
-                           couleur_fond_inverse, couleur_fond)
-    texte_bottom = texte_rect.bottom
-    texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-    texte_rect.top = texte_bottom
-    ecran.blit(texte, texte_rect)
+    if (retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]) != text_dict['pourcent_pluie']['text']:
+        text_dict['pourcent_pluie']['text'] = retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]
+        text_dict['pourcent_pluie']['surface'] = font_17.render(retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+        text_dict['pourcent_pluie']['rect'] = text_dict['pourcent_pluie']['surface'].get_rect(center=(text_dict['temperature']['rect'].center[0], 0))
+        text_dict['pourcent_pluie']['rect'].top = text_dict['temperature']['rect'].bottom
+    ecran.blit(text_dict['pourcent_pluie']['surface'], text_dict['pourcent_pluie']['rect'])
 
     if EthermineAPI.ENABLE_ETHERMINE_STATS:
-        texte = font_17.render(retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame], 1,
-                               couleur_fond_inverse)
-        texte_rect = texte.get_rect()
-        texte_rect.bottom = hauteur
-        texte_rect.left = int(2 * size_mult)
-        ecran.blit(texte, texte_rect)
+        if (retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][1]['text']:
+            text_dict['ethermine_data'][1]['text'] = retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]
+            text_dict['ethermine_data'][1]['surface'] = font_17.render(retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+            text_dict['ethermine_data'][1]['rect'] = text_dict['ethermine_data'][1]['surface'].get_rect()
+            text_dict['ethermine_data'][1]['rect'].bottom = hauteur
+            text_dict['ethermine_data'][1]['rect'].left = int(2 * size_mult)
+        ecran.blit(text_dict['ethermine_data'][1]['surface'], text_dict['ethermine_data'][1]['rect'])
 
-        texte = font_17.render(retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame], 1,
-                               couleur_fond_inverse, couleur_fond)
-        texte_top = texte_rect.top - (2 * size_mult)
-        texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-        texte_rect.bottom = int(texte_top)
-        ecran.blit(texte, texte_rect)
+        if (retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][0]['text']:
+            text_dict['ethermine_data'][0]['text'] = retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]
+            text_dict['ethermine_data'][0]['surface'] = font_17.render(retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+            texte_top = text_dict['ethermine_data'][1]['rect'].top - (2 * size_mult)
+            text_dict['ethermine_data'][0]['rect'] = text_dict['ethermine_data'][0]['surface'].get_rect(center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
+            text_dict['ethermine_data'][0]['rect'].bottom = int(texte_top)
+        ecran.blit(text_dict['ethermine_data'][0]['surface'], text_dict['ethermine_data'][0]['rect'])
 
-        texte = font_17.render(retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame], 1,
-                               couleur_fond_inverse, couleur_fond)
-        texte_top = texte_rect.top - (2 * size_mult)
-        texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-        texte_rect.bottom = int(texte_top)
-        ecran.blit(texte, texte_rect)
+        if (retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][2]['text']:
+            text_dict['ethermine_data'][2]['text'] = retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame]
+            text_dict['ethermine_data'][2]['surface'] = font_17.render(retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+            #text_dict['ethermine_data'][2]['rect'] = text_dict['ethermine_data'][2]['surface'].get_rect()
+            texte_top = text_dict['ethermine_data'][0]['rect'].top - (2 * size_mult)
+            text_dict['ethermine_data'][2]['rect'] = text_dict['ethermine_data'][2]['surface'].get_rect(center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
+            text_dict['ethermine_data'][2]['rect'].bottom = int(texte_top)
 
-        texte = font_17.render("Mining", 1, couleur_fond_inverse, couleur_fond)
-        texte_top = texte_rect.top
-        texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-        texte_rect.bottom = texte_top
-        ecran.blit(texte, texte_rect)
+            texte_top = text_dict['ethermine_data'][2]['rect'].top
+            text_dict['texte_mining']['rect'] = text_dict['texte_mining']['surface'].get_rect(center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
+            text_dict['texte_mining']['rect'].bottom = texte_top
+        ecran.blit(text_dict['ethermine_data'][2]['surface'], text_dict['ethermine_data'][2]['rect'])
+        ecran.blit(text_dict['texte_mining']['surface'], text_dict['texte_mining']['rect'])
 
-    texte = font_17.render(retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame], 1,
-                           couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top - (2 * size_mult)
-    texte_rect = texte.get_rect()
-    texte_rect.left = int(2 * size_mult)
-    if EthermineAPI.ENABLE_ETHERMINE_STATS:
-        texte_rect.bottom = int(texte_top)
-    else:
-        texte_rect.bottom = hauteur
-    ecran.blit(texte, texte_rect)
+    if (retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_bitcoin']['text']:
+        text_dict['valeur_bitcoin']['text'] = retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]
+        text_dict['valeur_bitcoin']['surface'] = font_17.render(retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse,couleur_fond)
+        text_dict['valeur_bitcoin']['rect'] = text_dict['valeur_bitcoin']['surface'].get_rect()
+        texte_top = text_dict['texte_mining']['rect'].top - (2 * size_mult)
+        text_dict['valeur_bitcoin']['rect'].left = int(2 * size_mult)
+        if EthermineAPI.ENABLE_ETHERMINE_STATS:
+            text_dict['valeur_bitcoin']['rect'].bottom = int(texte_top)
+        else:
+            text_dict['valeur_bitcoin']['rect'].bottom = hauteur
 
-    texte = font_17.render("BTC", 1, couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top
-    texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-    texte_rect.bottom = texte_top
-    ecran.blit(texte, texte_rect)
+        texte_top = text_dict['valeur_bitcoin']['rect'].top
+        text_dict['BTC']['rect'] = text_dict['BTC']['surface'].get_rect(center=(text_dict['valeur_bitcoin']['rect'].center[0], 0))
+        text_dict['BTC']['rect'].bottom = texte_top
+    ecran.blit(text_dict['valeur_bitcoin']['surface'], text_dict['valeur_bitcoin']['rect'])
+    ecran.blit(text_dict['BTC']['surface'], text_dict['BTC']['rect'])
 
-    texte = font_17.render(retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame], 1,
-                           couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top - (2 * size_mult)
-    texte_rect = texte.get_rect()
-    texte_rect.left = int(2 * size_mult)
-    texte_rect.bottom = int(texte_top)
-    ecran.blit(texte, texte_rect)
 
-    texte = font_17.render("ETH", 1, couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top
-    texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-    texte_rect.bottom = texte_top
-    ecran.blit(texte, texte_rect)
+    if (retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_ethereum']['text']:
+        text_dict['valeur_ethereum']['text'] = retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]
+        text_dict['valeur_ethereum']['surface'] = font_17.render(retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+        text_dict['valeur_ethereum']['rect'] = text_dict['valeur_ethereum']['surface'].get_rect()
+        texte_top = text_dict['BTC']['rect'].top - (2 * size_mult)
+        text_dict['valeur_ethereum']['rect'].left = int(2 * size_mult)
+        text_dict['valeur_ethereum']['rect'].bottom = int(texte_top)
 
-    """
-    texte = font_17.render(retour_thread['valeur_bitcoin_cash'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top - (2 * size_mult)
-    texte_rect = texte.get_rect()
-    texte_rect.left = int(2 * size_mult)
-    texte_rect.bottom = int(texte_top)
-    ecran.blit(texte, texte_rect)
+        texte_top = text_dict['valeur_ethereum']['rect'].top
+        text_dict['ETH']['rect'] = text_dict['ETH']['surface'].get_rect(center=(text_dict['valeur_ethereum']['rect'].center[0], 0))
+        text_dict['ETH']['rect'].bottom = texte_top
+    ecran.blit(text_dict['valeur_ethereum']['surface'], text_dict['valeur_ethereum']['rect'])
+    ecran.blit(text_dict['ETH']['surface'], text_dict['ETH']['rect'])
 
-    texte = font_17.render("BCH", 1, couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top
-    texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-    texte_rect.bottom = texte_top
-    ecran.blit(texte, texte_rect)
 
-    texte = font_17.render(retour_thread['valeur_litecoin'] or text_anim_frames[text_anim_frame], 1, couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top - (2 * size_mult)
-    texte_rect = texte.get_rect()
-    texte_rect.left = int(2 * size_mult)
-    texte_rect.bottom = int(texte_top)
-    ecran.blit(texte, texte_rect)
+    if (retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame]) != text_dict['fetching_animation']['text']:
+        text_dict['fetching_animation']['text'] = retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame]
+        text_dict['fetching_animation']['surface'] = font_17.render(retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+        texte_top = text_dict['ETH']['rect'].top - (20 * size_mult)
+        text_dict['fetching_animation']['rect'] = text_dict['fetching_animation']['surface'].get_rect()
+        text_dict['fetching_animation']['rect'].left = int(2 * size_mult)
+        text_dict['fetching_animation']['rect'].bottom = int(texte_top)
+    ecran.blit(text_dict['fetching_animation']['surface'], text_dict['fetching_animation']['rect'])
 
-    texte = font_17.render("LTC", 1, couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top
-    texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-    texte_rect.bottom = texte_top
-    ecran.blit(texte, texte_rect)
-    """
-    texte = font_17.render(retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame], 1,
-                           couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top - (20 * size_mult)
-    texte_rect = texte.get_rect()
-    texte_rect.left = int(2 * size_mult)
-    texte_rect.bottom = int(texte_top)
-    ecran.blit(texte, texte_rect)
+    if noms_jours_semaine[num_jour_semaine] != text_dict['noms_jours_semaine']['text'] or text_jour_semaine_couleur != text_dict['noms_jours_semaine']['color']:
+        text_dict['noms_jours_semaine']['text'] = noms_jours_semaine[num_jour_semaine]
+        text_dict['noms_jours_semaine']['color'] = text_jour_semaine_couleur
+        text_dict['noms_jours_semaine']['surface'] = font_25.render(noms_jours_semaine[num_jour_semaine], True, text_jour_semaine_couleur, couleur_fond)
+        text_dict['noms_jours_semaine']['rect'] = text_dict['noms_jours_semaine']['surface'].get_rect(center=(largeur - centre_date, 0))
+        text_dict['noms_jours_semaine']['rect'].top = 0
+    ecran.blit(text_dict['noms_jours_semaine']['surface'], text_dict['noms_jours_semaine']['rect'])
 
-    texte = font_25.render(noms_jours_semaine[num_jour_semaine], 1, text_jour_semaine_couleur, couleur_fond)
-    texte_rect = texte.get_rect(center=(largeur - centre_date, 0))
-    texte_rect.top = 0
-    ecran.blit(texte, texte_rect)
+    if num_jour != text_dict['num_jour']['text']:
+        text_dict['num_jour']['text'] = num_jour
+        text_dict['num_jour']['surface'] = font_40.render(num_jour, True, couleur_fond_inverse)
+        texte_bottom = text_dict['noms_jours_semaine']['rect'].bottom
+        text_dict['num_jour']['rect'] = text_dict['num_jour']['surface'].get_rect(center=(text_dict['noms_jours_semaine']['rect'].center[0], 0))
+        text_dict['num_jour']['rect'].top = int(texte_bottom - (12 * size_mult))
+    ecran.blit(text_dict['num_jour']['surface'], text_dict['num_jour']['rect'])
 
-    texte = font_40.render(num_jour, 1, couleur_fond_inverse)
-    texte_bottom = texte_rect.bottom
-    texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-    texte_rect.top = int(texte_bottom - (12 * size_mult))
-    ecran.blit(texte, texte_rect)
-
-    texte = font_17.render(noms_mois[num_mois], 1, couleur_fond_inverse)
-    texte_bottom = texte_rect.bottom
-    texte_rect = texte.get_rect(center=(texte_rect.center[0], 0))
-    texte_rect.top = int(texte_bottom - (10 * size_mult))
-    ecran.blit(texte, texte_rect)
+    if noms_mois[num_mois] != text_dict['noms_mois']['text']:
+        text_dict['noms_mois']['text'] = noms_mois[num_mois]
+        text_dict['noms_mois']['surface'] = font_17.render(noms_mois[num_mois], True, couleur_fond_inverse)
+        texte_bottom = text_dict['num_jour']['rect'].bottom
+        text_dict['noms_mois']['rect'] = text_dict['noms_mois']['surface'].get_rect(center=(text_dict['num_jour']['rect'].center[0], 0))
+        text_dict['noms_mois']['rect'].top = int(texte_bottom - (10 * size_mult))
+    ecran.blit(text_dict['noms_mois']['surface'], text_dict['noms_mois']['rect'])
 
     # Countdown timer
     if ClockSettings.ENABLE_COUNTDOWN_TIMER:
         if changement_seconde or first_frame:
             # Countdown normal
-            temps_restant = datetime.datetime(2022, 7, 29, 12, 00) - maintenant
+            temps_restant = datetime.datetime(2022, 12, 16, 16, 00) - maintenant
             # Fin de journée
             # temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 
@@ -1634,35 +1642,43 @@ while en_fonction:
             temps_restant = "{}:{}:{}:{}".format(temps_restant_jours, temps_restant_heures, temps_restant_mins,
                                                  temps_restant_secs)
 
-        texte = font_25.render(temps_restant, 1, couleur_fond_inverse, couleur_fond)
-        texte_rect = texte.get_rect()
-        texte_rect.right = int(largeur - (2 * size_mult))
-        texte_rect.bottom = hauteur
-        ecran.blit(texte, texte_rect)
+        if temps_restant != text_dict['temps_restant']['text']:
+            text_dict['temps_restant']['text'] = temps_restant
+            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse, couleur_fond)
+            text_dict['temps_restant']['rect'] = text_dict['temps_restant']['surface'].get_rect()
+            text_dict['temps_restant']['rect'].right = int(largeur - (2 * size_mult))
+            text_dict['temps_restant']['rect'].bottom = hauteur
+        ecran.blit(text_dict['temps_restant']['surface'], text_dict['temps_restant']['rect'])
 
         # Disco
         # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
         # Smooth
-        couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
+        # couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
         # Noel (vert/rouge)
-        # if changement_seconde:
-        #    couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
+        if changement_seconde:
+            couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
 
-        texte = font_17.render("Comfyyyyyy", 1, couleur_titre_countdown, couleur_fond)
-        texte_top = texte_rect.top
-        texte_rect = texte.get_rect()
-        texte_rect.right = int(largeur - (2 * size_mult))
-        texte_rect.bottom = texte_top
-        ecran.blit(texte, texte_rect)
+        titre_countdown = 'Noël :D'
+
+        if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != text_dict['titre_countdown']['color']:
+            text_dict['titre_countdown']['text'] = titre_countdown
+            text_dict['titre_countdown']['color'] = couleur_titre_countdown
+            text_dict['titre_countdown']['surface'] = font_17.render(titre_countdown, True, couleur_titre_countdown, couleur_fond)
+            texte_top = text_dict['temps_restant']['rect'].top
+            text_dict['titre_countdown']['rect'] = text_dict['titre_countdown']['surface'].get_rect()
+            text_dict['titre_countdown']['rect'].right = int(largeur - (2 * size_mult))
+            text_dict['titre_countdown']['rect'].bottom = texte_top
+        ecran.blit(text_dict['titre_countdown']['surface'], text_dict['titre_countdown']['rect'])
 
     # End countdown timer
-
-    texte = font_17.render(calculated_fps, 1, couleur_fond_inverse, couleur_fond)
-    texte_top = texte_rect.top
-    texte_rect = texte.get_rect()
-    texte_rect.right = int(largeur - (2 * size_mult))
-    texte_rect.bottom = texte_top if ClockSettings.ENABLE_COUNTDOWN_TIMER else hauteur
-    ecran.blit(texte, texte_rect)
+    if calculated_fps != text_dict['calculated_fps']['text']:
+        text_dict['calculated_fps']['text'] = calculated_fps
+        text_dict['calculated_fps']['surface'] = font_17.render(calculated_fps, True, couleur_fond_inverse, couleur_fond)
+        texte_top = text_dict['titre_countdown']['rect'].top
+        text_dict['calculated_fps']['rect'] = text_dict['calculated_fps']['surface'].get_rect()
+        text_dict['calculated_fps']['rect'].right = int(largeur - (2 * size_mult))
+        text_dict['calculated_fps']['rect'].bottom = texte_top if ClockSettings.ENABLE_COUNTDOWN_TIMER else hauteur
+    ecran.blit(text_dict['calculated_fps']['surface'], text_dict['calculated_fps']['rect'])
 
     # render_spinning_image(vitesse_rpm=15)
 
@@ -1695,10 +1711,10 @@ while en_fonction:
             midi_couleur = seconde_a_couleur(seconde_precise)
 
         pygame.draw.rect(ecran, midi_couleur, [0, 0, largeur, hauteur])
-        midi_texte = font_100.render(big_top_text, 1, [255, 255, 255], midi_couleur)
+        midi_texte = font_100.render(big_top_text, True, [255, 255, 255], midi_couleur)
         midi_texte_rect = midi_texte.get_rect(center=(largeur // 2, int(0.3 * hauteur)))
         ecran.blit(midi_texte, midi_texte_rect)
-        midi_texte = font_100.render(big_bottom_text, 1, [255, 255, 255], midi_couleur)
+        midi_texte = font_100.render(big_bottom_text, True, [255, 255, 255], midi_couleur)
         midi_texte_rect = midi_texte.get_rect(center=(largeur // 2, int(0.7 * hauteur)))
         ecran.blit(midi_texte, midi_texte_rect)
     # --------------------------------------------------------------------------------------- #
@@ -1706,26 +1722,27 @@ while en_fonction:
     if toggle_menu:
         pygame.draw.rect(ecran, [0, 0, 0], [0, 0, largeur, hauteur])
 
-        texte = font_25.render("Voulez-vous vraiment quitter?", 1, [255, 255, 255], [0, 0, 0])
+        texte = font_25.render("Voulez-vous vraiment quitter?", True, [255, 255, 255], [0, 0, 0])
         texte_rect = texte.get_rect(center=((largeur // 2), hauteur // 4))
         ecran.blit(texte, texte_rect)
 
-        texte = font_40.render("Oui", 1, [0, 255, 0])
+        texte = font_40.render("Oui", True, [0, 255, 0])
         texte_rect = texte.get_rect(center=((largeur // 6), (hauteur // 2)))
         ecran.blit(texte, texte_rect)
 
-        texte = font_40.render("Non", 1, [255, 0, 0])
+        texte = font_40.render("Non", True, [255, 0, 0])
         texte_rect = texte.get_rect(center=((largeur // 2), (hauteur // 2)))
         ecran.blit(texte, texte_rect)
 
-        texte = font_40.render("Reboot", 1, [0, 0, 255])
+        texte = font_40.render("Reboot", True, [0, 0, 255])
         texte_rect = texte.get_rect(center=((5 * largeur) // 6, (hauteur // 2)))
         ecran.blit(texte, texte_rect)
 
     if peek_animating:
         if time.time() - peek_time >= 0.5:
             peek_radius = int(((time.time() - peek_time) - 0.5) * 250 * size_mult)
-            pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2], peek_radius + int(5 * size_mult))
+            pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2],
+                               peek_radius + int(5 * size_mult))
             pygame.draw.circle(peek_surface, [255, 255, 255], [largeur // 2, hauteur // 2], peek_radius)
 
             if peek_radius > peek_radius_limit:
@@ -1736,7 +1753,7 @@ while en_fonction:
 
     duree_last_frame = sleep_until_next_frame()
 
-    if not startup_complete:
+    if not startup_complete and en_fonction:
         startup_complete = True
 
     frame_counter += 1
@@ -1748,7 +1765,7 @@ while en_fonction:
 pygame.mouse.set_visible(False)
 pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
 ecran.blit(surface, [0, 0])
-texte = font_100.render(status_loading_text, 1, couleur_fond_inverse)
+texte = font_100.render(status_loading_text, True, couleur_fond_inverse)
 texte_rect = texte.get_rect(center=(largeur // 2, hauteur // 2))
 ecran.blit(texte, texte_rect)
 pygame.display.update()
