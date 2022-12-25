@@ -1,15 +1,15 @@
 # coding: utf-8
 
 class ClockSettings(object):
-    ENABLE_COUNTDOWN_TIMER = True
+    ENABLE_COUNTDOWN_TIMER = False
     DEBUG_MODE = False
-    ANIMATION_DURATION_SECONDS = 2.5
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
+    LOW_FRAMERATE_MODE = False
     FONT = "moonget.ttf"
     FULLSCREEN = False
-    WINDOWED_WIDTH = 480
-    WINDOWED_HEIGHT = 320
+    WINDOWED_WIDTH = 960
+    WINDOWED_HEIGHT = 640
     ENABLE_LOADING_ANIMATION = True
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
     DEBUG_LOADING_ANIMATION = False
@@ -93,7 +93,7 @@ def show_progress_loading_screen(largeur, hauteur):
         loading_master.update()
 
         duree_frame = (time.time() - debut_frame)
-        duree_frame = 0 if duree_frame > 0.15 else duree_frame
+        duree_frame = 0.1 if duree_frame > 0.1 else duree_frame
 
     loading_master.destroy()
 
@@ -106,7 +106,6 @@ def show_peek_loading_screen(largeur, hauteur):
 
     loading_master.minsize(width=largeur, height=hauteur)
     loading_master.attributes("-fullscreen", ClockSettings.FULLSCREEN)
-    # loading_master.attributes("-topmost", True)
     loading_master.config(cursor="none")
     loading_master["bg"] = "black"
     loading_master.update()
@@ -174,25 +173,36 @@ def show_peek_loading_screen(largeur, hauteur):
             if active_circle == len(circle_list):
                 active_circle = 0
                 first_loop = False
+                debut_frame = time.time()
                 time.sleep(0.2)
                 wait_for_peek_animation = False
+                loading_master.lift()
                 for it in range(8):
-                    time.sleep(0.1)
+                    duree_frame = (time.time() - debut_frame)
+
+                    if 1 - duree_frame >= 0.1:
+                        time.sleep(0.1)
+                    elif 1 - duree_frame > 0:
+                        time.sleep(1 - duree_frame)
+                        break
+
                     if startup_complete:
                         break
-                wait_for_peek_animation = True
+
+                if wait_for_peek_animation:
+                    # wait_for_peek_animation set to True by main thread, don't start another loop. Prevents animation from looping again on horrendously slow hardware
+                    while not startup_complete:
+                        time.sleep(0.1)
+                    break
+                else:
+                    wait_for_peek_animation = True
 
             color_strength = 0.0 if first_loop else 19.0
 
         duree_frame = (time.time() - debut_frame)
-        duree_frame = 0 if duree_frame > 0.15 else duree_frame
+        duree_frame = 0.1 if duree_frame > 0.1 else duree_frame
 
     loading_master.withdraw()
-    # canvas.config(width=1, height=1)
-    # loading_master.minsize(width=200, height=200)
-    # loading_master["bg"] = "red"
-    # loading_master.lift()
-    # loading_master.geometry('10x10+' + str(int(largeur/2)) + '+' + str(int(hauteur/2)))
     loading_master.destroy()
     lift_loading_master = False
 
@@ -229,7 +239,6 @@ if largeur > hauteur:
     size_mult = fausse_largeur / 480.0
 else:
     size_mult = hauteur / 480.0
-
 
 resolution = int(largeur), int(hauteur)
 
@@ -286,9 +295,9 @@ if ClockSettings.DEBUG_LOADING_ANIMATION:
 
 
 def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
-    random_number_color_local = randint(0, 59) if couleur_random else random_number_color
+    color_offset_local = uniform(0, 59) if couleur_random else color_offset
 
-    seconde = (seconde + random_number_color_local) % 60
+    seconde = (seconde + color_offset_local) % 60
 
     if inverser:
         seconde = (seconde + 30) % 60
@@ -298,7 +307,7 @@ def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
     return couleur
 
 
-def get_data(retour_thread, get_forecast=False, geolocate=False):
+def get_data(retour_thread, get_forecast=False):
     if ClockSettings.DEBUG_MODE:
         print("SKIPPING REQUESTS FOR DEBUG")
         retour_thread['weather_animation'] = 'neige'
@@ -339,16 +348,17 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
         try:
             print("Requesting forecast")
 
-            retour_thread['detailed_info'] = "Géolocalisation..." if geolocate else retour_thread['city_name']
+            retour_thread['detailed_info'] = "Géolocalisation..." if not retour_thread['geolocate_success'] else \
+                retour_thread['city_name']
             retour_thread['temperature'][0] = None
             retour_thread['temperature'][1]['couleur'] = couleur_fond_inverse
             retour_thread['temperature'][1]['wiggle'] = 0
             retour_thread['weather_icon'] = ''
 
-            if retour_thread['pourcent_pluie'] != ' ' or geolocate:
+            if retour_thread['pourcent_pluie'] != ' ' or not retour_thread['geolocate_success']:
                 retour_thread['pourcent_pluie'] = None
 
-            if geolocate:
+            if not retour_thread['geolocate_success']:
                 response = urllib.request.urlopen("http://ipinfo.io/json",
                                                   timeout=60,
                                                   context=ssl_context)
@@ -372,7 +382,8 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
                     if city['Code de province'] != 'HEF':
                         city['Latitude'] = float(city['Latitude'].replace('N', ''))
                         city['Longitude'] = -1 * float(city['Longitude'].replace('O', ''))
-                        city['Distance'] = math.sqrt((coordinates[0] - city['Latitude']) ** 2.0 + (coordinates[1] - city['Longitude']) ** 2.0)
+                        city['Distance'] = math.sqrt(
+                            (coordinates[0] - city['Latitude']) ** 2.0 + (coordinates[1] - city['Longitude']) ** 2.0)
                         city_list.append(city)
 
                 def city_distance(site):
@@ -423,12 +434,14 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
                             retour_thread['detailed_info'] = 'Location sélectionnée'
                             retour_thread['weather_icon'] = 'checkmark.png'
                             retour_thread['pourcent_pluie'] = ' '
+                            retour_thread['geolocate_success'] = True
+                            print('Geolocated successfully')
                             time.sleep(1)
                             break
                     else:
                         time.sleep(sleep_time)
 
-            if not geolocate:
+            else:
                 url_response = urllib.request.urlopen(
                     'https://dd.weather.gc.ca/citypage_weather/xml/QC/' + retour_thread['city_id'] + '_f.xml',
                     timeout=60,
@@ -553,7 +566,8 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
 		"""
         print("Requesting ethereum value")
         retour_thread['valeur_ethereum'] = None
-        response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=CAD", timeout=60, context=ssl_context)
+        response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=CAD", timeout=60,
+                                          context=ssl_context)
         the_page = response.read()
         data = json.loads(the_page.decode('utf-8'))
         valeur_float_ethereum = data['CAD']
@@ -567,7 +581,8 @@ def get_data(retour_thread, get_forecast=False, geolocate=False):
 
         print("Requesting bitcoin value")
         retour_thread['valeur_bitcoin'] = None
-        response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=CAD", timeout=60, context=ssl_context)
+        response = urllib.request.urlopen("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=CAD", timeout=60,
+                                          context=ssl_context)
         the_page = response.read()
         data = json.loads(the_page.decode('utf-8'))
         valeur_float_bitcoin = data['CAD']
@@ -756,12 +771,11 @@ def get_font_ratio(font_path):
 
 def sleep_until_next_frame():
     pygame.display.update()
-    # clock.tick(fps)
     duree_frame = (datetime.datetime.now() - maintenant).total_seconds()
 
-    if fps and duree_frame <= 1:
+    if ClockSettings.FRAMERATE and duree_frame <= 1:
         # On diminue le sleep au cas ou la frame prends du temps a faire
-        sleep_time = (1.0 / fps - duree_frame)
+        sleep_time = (1.0 / ClockSettings.FRAMERATE - duree_frame)
 
         if sleep_time > 0:
             time.sleep(sleep_time)
@@ -781,6 +795,9 @@ def get_snowflake():
 
 def get_raindrop():
     vit_y = uniform(hauteur / 1.5, hauteur * 1.5)
+    if ClockSettings.LOW_FRAMERATE_MODE:
+        vit_y = vit_y * 0.5
+
     return {'pos_y': int(-randint(10, 50) * size_mult),
             'pos_x': randint(-largeur // 4, largeur),
             'vit_y': vit_y,
@@ -858,6 +875,7 @@ else:
 pygame.display.init()
 
 pygame.mouse.set_visible(False)
+mouse_button_down_time = 0
 
 ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
 pygame.display.set_caption('A cute little clock')
@@ -865,8 +883,6 @@ lift_loading_master = True
 
 maintenant = datetime.datetime.now()
 
-fps = ClockSettings.FRAMERATE
-duree_last_frame = sleep_until_next_frame()
 lift_loading_master = True
 
 # --------------------------------LOADING SPINNING IMAGES--------------------------------- #
@@ -910,7 +926,7 @@ if AnimationLoopSettings.ENABLED:
         status_loading_text = 'Images d\'animation (' + str(index + 1) + '/' + str(len(images_filenames)) + ')'
 
         temp_image = pygame.image.load(os.path.join(loop_directory, images_filenames[index]))
-        loop_images.append(pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult))
+        loop_images.append(pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult).convert())
 
     loop_images_len = len(loop_images)
     loop_time = loop_images_len / AnimationLoopSettings.FPS
@@ -926,7 +942,7 @@ for index in range(0, len(images_filenames)):
     status_loading_text = 'Icônes de météo (' + str(index + 1) + '/' + str(len(images_filenames)) + ')'
 
     temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
-    weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult)
+    weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
 # ---------------------------------------------------------------------------------------- #
 
 status_loading_text = "Touches finales"
@@ -1012,13 +1028,17 @@ toggle_menu = False
 
 is_raspi2fb_active = False
 
-animation_total_frames = round(ClockSettings.ANIMATION_DURATION_SECONDS * (ClockSettings.FRAMERATE or 1))
-animation_active_frame = 0
+draw_middle_circle = True
+first_frame = True
 
 arc_cleanup_status = (2 * size_mult)
-do_arc_cleanup = False
+do_arc_cleanup = True
 
-random_number_color = randint(0, 59)
+color_offset = uniform(0, 59)
+
+color_wheel_active = False
+color_wheel_angle = 0
+color_wheel_offset = -1
 
 couleur_titre_countdown = couleur_fond_inverse
 
@@ -1030,32 +1050,50 @@ texte = font_17.render('INITIAL TEXT', 0, [255, 255, 255])
 texte_rect = texte.get_rect()
 
 text_dict = {'temps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'seconde': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'seconde': {'text': 'INITIAL TEXT', 'surface': texte, 'rotated_surface': texte, 'rect': texte_rect},
              'detailed_info': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'temperature': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'temperature': {'text': 'INITIAL TEXT', 'surface': texte, 'wiggle_surface': texte, 'rect': texte_rect,
+                             'wiggle_rect': texte_rect},
              'pourcent_pluie': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              'ethermine_data': [{'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
                                 {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
                                 {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect}],
-             'texte_mining': {'text': 'Mining', 'surface': font_17.render('Mining', True, couleur_fond_inverse, couleur_fond), 'rect': texte_rect},
+             'texte_mining': {'text': 'Mining', 'surface': font_17.render('Mining', True, couleur_fond_inverse),
+                              'rect': texte_rect},
              'valeur_bitcoin': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'BTC': {'text': 'BTC', 'surface': font_17.render('BTC', True, couleur_fond_inverse, couleur_fond), 'rect': texte_rect},
+             'BTC': {'text': 'BTC', 'surface': font_17.render('BTC', True, couleur_fond_inverse), 'rect': texte_rect},
              'valeur_ethereum': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'ETH': {'text': 'ETH', 'surface': font_17.render('ETH', True, couleur_fond_inverse, couleur_fond), 'rect': texte_rect},
+             'ETH': {'text': 'ETH', 'surface': font_17.render('ETH', True, couleur_fond_inverse), 'rect': texte_rect},
              'fetching_animation': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'noms_jours_semaine': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect, 'color': couleur_fond_inverse},
+             'noms_jours_semaine': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect,
+                                    'color': couleur_fond_inverse},
              'num_jour': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              'noms_mois': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              'temps_restant': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'titre_countdown': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect, 'color': couleur_fond_inverse},
+             'titre_countdown': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect,
+                                 'color': couleur_fond_inverse},
              'calculated_fps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              }
+
+# seconde_surfaces = {}
+
+# for it in range(0, 360):
+#     texte = font_25.render(' ' + str(int(it/6)) + ' ', True, [255, 255, 255])
+#     for it2 in range(0, 10):
+#         seconde_surfaces[str(it) + '.' + str(it2)] = pygame.transform.rotozoom(texte, -float(str(it) + '.' + str(it2)) + (180 if 45 > it/6 > 15 else 0), 1)
+#
+# seconde_surfaces['360.0'] = seconde_surfaces['359.9']
+
+# for it in range(0, 360):
+#     texte = font_25.render(' ' + str(int(it/6)) + ' ', True, [255, 255, 255])
+#     seconde_surfaces[str(it)] = pygame.transform.rotozoom(texte, -it + (180 if 45 > it/6 > 15 else 0), 1)
+
 
 ssl_context = ssl._create_unverified_context()
 
 retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C",
                                  {'couleur': couleur_fond_inverse, 'wiggle': 1.5 if ClockSettings.DEBUG_MODE else 0}],
-                 'pourcent_pluie': " ",
+                 'pourcent_pluie': '##%' if ClockSettings.DEBUG_MODE else ' ',
                  'detailed_info': "Conditions actuelles",
                  'weather_icon': "10.png" if ClockSettings.DEBUG_MODE else "",
                  'valeur_bitcoin': "####.##$",
@@ -1067,7 +1105,8 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C",
                  'thread_en_cours': False,
                  'weather_animation': '',
                  'city_id': 's0000620',
-                 'city_name': 'Québec'}
+                 'city_name': 'Québec',
+                 'geolocate_success': False}
 
 meteo_update_recent = True
 
@@ -1102,7 +1141,7 @@ noms_mois = [
 
 num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
 
-calculated_fps = '{} fps'.format(fps or 1)
+calculated_fps = '{} fps'.format(ClockSettings.FRAMERATE or 1)
 
 # text_anim_frames = ["[oOo ]", "[ oOo]", "[o oO]", "[Oo o]"]
 # text_anim_frames = ["boi", "boiii", "boiiiii", "boiiiiiii"]
@@ -1136,10 +1175,13 @@ pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40
 pygame.display.update()
 
 peek_animating = False
+peek_radius = 0
 peek_radius_limit = math.sqrt(hauteur ** 2 + largeur ** 2) / 2
 
 while wait_for_peek_animation:
     time.sleep(0.05)
+
+wait_for_peek_animation = True
 
 if ClockSettings.FULLSCREEN:
     ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
@@ -1164,43 +1206,59 @@ print("Done initialising!")
 
 loading_master.destroy()
 
+get_forecast_too = True
+
 if ClockSettings.LOADING_ANIMATION_SELECTION != 'peek' or not ClockSettings.ENABLE_LOADING_ANIMATION:
-    Thread(target=get_data, args=(retour_thread, True, True)).start()
+    Thread(target=get_data, args=(retour_thread, get_forecast_too)).start()
 
 frame_counter = 0
 
 surface = pygame.Surface(resolution)
 
-fps_start_time = time.time()
+maintenant = datetime.datetime.now()
 
 while en_fonction:
     maintenant_precedent = maintenant
     maintenant = datetime.datetime.now()
 
     for event in pygame.event.get():
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.MOUSEMOTION and not peek_animating:
             pygame.mouse.set_visible(True)
-            position_souris = pygame.mouse.get_pos()
-            if toggle_menu:
-                if position_souris[0] < largeur / 3:
-                    # oui
-                    if ClockSettings.DEBUG_MODE:
-                        exit()
-                    status_loading_text = "BYE"
-                    en_fonction = False
-                elif position_souris[0] < (2 * largeur) / 3:
-                    # non
-                    # animation_active_frame = 0
-                    toggle_menu = False
-                    pygame.mouse.set_visible(False)
-                else:
-                    # reboot
-                    status_loading_text = "À+"
-                    startup_complete = False
-                    en_fonction = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if not toggle_menu:
+                pygame.mouse.set_visible(True)
+                mouse_button_down_time = time.time()
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            mouse_button_down_time = 0
+            color_wheel_offset = -1
+
+            if color_wheel_active:
+                color_wheel_active = False
+                draw_middle_circle = True
             else:
-                toggle_menu = True
-                pygame.mouse.set_pos(largeur, hauteur)
+                pygame.mouse.set_visible(True)
+                position_souris = pygame.mouse.get_pos()
+                if toggle_menu:
+                    if position_souris[0] < largeur / 3:
+                        # oui
+                        if ClockSettings.DEBUG_MODE:
+                            exit()
+                        status_loading_text = "BYE"
+                        en_fonction = False
+                    elif position_souris[0] < (2 * largeur) / 3:
+                        # non
+                        toggle_menu = False
+                        pygame.mouse.set_visible(False)
+                    else:
+                        # reboot
+                        status_loading_text = "À+"
+                        startup_complete = False
+                        en_fonction = False
+                else:
+                    toggle_menu = True
+                    pygame.mouse.set_pos(largeur, hauteur)
         elif event.type == pygame.VIDEORESIZE and False:
             # Pour resizer, pas complet
             print("Resize detected")
@@ -1210,8 +1268,7 @@ while en_fonction:
 			resolution = largeur, hauteur
 			size_mult = largeur/480.0
 			ecran = pygame.display.set_mode(resolution, pygame.RESIZABLE)
-			surface = pygame.Surface(resolution)
-			animation_active_frame = 0"""
+			surface = pygame.Surface(resolution)"""
 
     temps = time.strftime("%H:%M")
 
@@ -1222,11 +1279,11 @@ while en_fonction:
 
     minute = maintenant.minute
 
-    changement_heure = abs(maintenant - maintenant_precedent).total_seconds() > 2
+    changement_heure = abs(maintenant - maintenant_precedent).total_seconds() > 0.5
 
     if changement_heure:
         print("Time change detected")
-        animation_active_frame = 0
+        draw_middle_circle = True
 
     heure_precedente = heure
 
@@ -1271,10 +1328,18 @@ while en_fonction:
 
     degree_minutes = ((360 * minute_changeante) / 60)
 
+    degree_minute_ligne = math.radians(degree_minutes - 90)
+
     degree_heures = ((360 * heure_changeante) / 12)
 
+    degree_heures_ligne = math.radians(degree_heures - 90)
+
     if do_arc_cleanup and minute < 1:
-        num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
+        if changement_minute:
+            num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
+            text_dict['noms_mois']['text'] = 'update me'
+            text_dict['num_jour']['text'] = 'update me'
+            text_dict['noms_jours_semaine']['text'] = 'update me'
 
         cleanup_size = (80 * size_mult) if heure == 0 else (39 * size_mult)
         arc_cleanup_status += (arc_cleanup_status * duree_last_frame)
@@ -1294,13 +1359,13 @@ while en_fonction:
     if is_raspi2fb_active:
         if os.system("pidof raspi2fb") in (1, 256):
             is_raspi2fb_active = False
-            animation_active_frame = animation_total_frames
+            draw_middle_circle = True
         else:
             time.sleep(1)
             continue
 
     if not meteo_update_recent and minute % 5 == 0:
-        get_forecast_too = minute % 20 == 5
+        get_forecast_too = (minute % 20 == 5) or not retour_thread['geolocate_success']
         if not peek_animating:
             Thread(target=get_data, args=(retour_thread, get_forecast_too)).start()
         if shuffle_images:
@@ -1311,91 +1376,85 @@ while en_fonction:
     elif meteo_update_recent and minute % 5 != 0:
         meteo_update_recent = False
 
-    if animation_active_frame < animation_total_frames:
-        first_frame = animation_active_frame == 0
-        if first_frame:
+    if mouse_button_down_time:
+        color_wheel_active = time.time() - mouse_button_down_time >= 0.2
+
+    if draw_middle_circle or color_wheel_active:
+        draw_middle_circle = False
+
+        if color_wheel_active:
+            position_souris = pygame.mouse.get_pos()
+            (souris_x, souris_y) = (largeur / 2 - position_souris[0], position_souris[1] - hauteur / 2)
+            color_wheel_angle = 360 - (math.degrees(math.atan2(souris_x, souris_y)) + 180)
+
+            if color_wheel_offset == -1:
+                color_wheel_offset = color_wheel_angle - (color_offset * 6)
+
+            color_wheel_angle = (color_wheel_angle - color_wheel_offset) % 360
+
             if ClockSettings.DEBUG_MODE:
-                pygame.draw.rect(surface, [100, 100, 100], [0, 0, largeur, hauteur])
-            else:
-                pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
-            pygame.draw.circle(surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(155 * size_mult))
-            pygame.draw.circle(surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(36 * size_mult))
-            random_number_color = randint(0, 59)
+                temps = str(int(color_wheel_angle))
+
+            color_offset = color_wheel_angle / 6
+        else:
+            pygame.draw.rect(surface, [100, 100, 100] if ClockSettings.DEBUG_MODE else couleur_fond,
+                             [0, 0, largeur, hauteur])
+
+        pygame.draw.circle(surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(155 * size_mult))
+        pygame.draw.circle(surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(36 * size_mult))
+        if not color_wheel_active:
             num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
-            fps = ClockSettings.FRAMERATE
-            animation_start_time = time.time()
-
-        animation_temps_restant = ClockSettings.ANIMATION_DURATION_SECONDS - (
-                animation_active_frame * ClockSettings.ANIMATION_DURATION_SECONDS) / animation_total_frames
-        animation_duration = time.time() - animation_start_time
-        skip_frame = False
-
-        if round(animation_temps_restant + animation_duration, 1) > ClockSettings.ANIMATION_DURATION_SECONDS:
-            skip_frame = True
-
-        animation_seconde_fin = seconde_precise + animation_temps_restant
-
-        draw_from = int(round((animation_active_frame * 120) / animation_total_frames))
-        animation_active_frame += 2 if skip_frame else 1
-        draw_to = int(round((animation_active_frame * 120) / animation_total_frames))
+            text_dict['noms_mois']['text'] = 'update me'
+            text_dict['num_jour']['text'] = 'update me'
+            text_dict['noms_jours_semaine']['text'] = 'update me'
 
         # Secondes
-        for it in range(draw_from, draw_to):
-            it = int((animation_seconde_fin * 2) + it) % 120
+        # for it in range(1 if color_wheel_active else 2, 104 if color_wheel_active else 107):
+        for it in range(2, 105 if color_wheel_active else 106):
+            use_current_color = it == 105
+            it = int(((seconde_precise + 8.5) * 2) + it) % 120
 
-            couleur_pour_secondes = seconde_a_couleur(it / 2.0)
+            couleur_pour_secondes = seconde_a_couleur(seconde_precise) if use_current_color else seconde_a_couleur(
+                it / 2.0)
 
             pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
                             math.radians(111 - ((360 * (it / 2.0)) / 60)),
                             math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
-            pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
-                            math.radians(112 - ((360 * (it / 2.0)) / 60)),
-                            math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
-            pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
-                            math.radians(113 - ((360 * (it / 2.0)) / 60)),
-                            math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
 
-        # Pour cacher la couleur restante
-        if first_frame:
-            pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(75 - degree_secondes),
-                            math.radians(130 - degree_secondes), int(34 * size_mult))
-            pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(76 - degree_secondes),
-                            math.radians(130 - degree_secondes), int(34 * size_mult))
-            pygame.draw.arc(surface, [0, 0, 0], rect_arc_secondes, math.radians(77 - degree_secondes),
-                            math.radians(130 - degree_secondes), int(34 * size_mult))
+            if not color_wheel_active:
+                pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
+                                math.radians(111.5 - ((360 * (it / 2.0)) / 60)),
+                                math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
+                pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
+                                math.radians(112 - ((360 * (it / 2.0)) / 60)),
+                                math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
 
         # Minutes et heures
+        pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
+                        math.radians(90 - degree_minutes),
+                        math.radians(90), int(28 * size_mult))
 
-        if draw_from:
+        # If >= 0.5 car à 0 ça fait un arc complet a cause du offset des arcs redessinés
+        if degree_minutes >= 1 and not color_wheel_active:
             pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
-                            math.radians(90 - ((360 * minute_changeante / 60))),
+                            math.radians(90.5 - degree_minutes),
                             math.radians(90), int(28 * size_mult))
             pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
-                            math.radians(91 - ((360 * minute_changeante / 60))),
+                            math.radians(91 - degree_minutes),
                             math.radians(90), int(28 * size_mult))
-            pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
-                            math.radians(92 - ((360 * minute_changeante / 60))),
-                            math.radians(90), int(28 * size_mult))
+
+        pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
+                        math.radians(90 - degree_heures),
+                        math.radians(90), int(38 * size_mult))
+
+        # If >= 0.5 car à 0 ça fait un arc complet a cause du offset des arcs redessinés
+        if degree_heures >= 1 and not color_wheel_active:
             pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
-                            math.radians(90 - ((360 * heure_changeante) / 12)),
+                            math.radians(90.5 - degree_heures),
                             math.radians(90), int(38 * size_mult))
             pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
-                            math.radians(91 - ((360 * heure_changeante) / 12)),
+                            math.radians(91 - degree_heures),
                             math.radians(90), int(38 * size_mult))
-            pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
-                            math.radians(92 - ((360 * heure_changeante) / 12)),
-                            math.radians(90), int(38 * size_mult))
-        """DISABLED ARCS
-        pygame.draw.arc(surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                        rect_arc_secondes, math.radians(75 - degree_secondes),
-                        math.radians(111 - degree_secondes), int(34 * size_mult))
-        pygame.draw.arc(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                        rect_arc_secondes, math.radians(76 - degree_secondes),
-                        math.radians(111 - degree_secondes), int(34 * size_mult))
-        pygame.draw.arc(surface, [0, 0, 255] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                        rect_arc_secondes, math.radians(77 - degree_secondes),
-                        math.radians(111 - degree_secondes), int(34 * size_mult))
-        """
 
     else:
         if not (do_arc_cleanup and minute < 1):
@@ -1403,7 +1462,8 @@ while en_fonction:
             couleur_pour_minutes = seconde_a_couleur(minute_changeante, inverser=True)
             for it in range(1, 4):
                 degree_secondes_ligne = degree_secondes - (it * 120)
-                degree_secondes_ligne = 360 - abs(degree_secondes_ligne) if degree_secondes_ligne < 0 else degree_secondes_ligne
+                degree_secondes_ligne = 360 - abs(
+                    degree_secondes_ligne) if degree_secondes_ligne < 0 else degree_secondes_ligne
                 if degree_minutes >= degree_secondes_ligne >= 0:
                     degree_secondes_ligne = math.radians(degree_secondes_ligne - 90)
                     pygame.draw.line(surface, [it * 80, 0, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
@@ -1411,15 +1471,14 @@ while en_fonction:
                                       int((hauteur / 2) + math.sin(degree_secondes_ligne) * 115 * size_mult)),
                                      (int((largeur / 2) + math.cos(degree_secondes_ligne) * 86 * size_mult),
                                       int((hauteur / 2) + math.sin(degree_secondes_ligne) * 86 * size_mult)),
-                                     int(2 * size_mult))
+                                     int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
 
-            degree_minute_ligne = math.radians(degree_minutes - 90)
             pygame.draw.line(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
                              (int((largeur / 2) + math.cos(degree_minute_ligne) * 115 * size_mult),
                               int((hauteur / 2) + math.sin(degree_minute_ligne) * 115 * size_mult)),
                              (int((largeur / 2) + math.cos(degree_minute_ligne) * 86 * size_mult),
                               int((hauteur / 2) + math.sin(degree_minute_ligne) * 86 * size_mult)),
-                             int(2 * size_mult))
+                             int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
 
             # Heures
             couleur_pour_heures = seconde_a_couleur((heure_changeante * 60) / 12)
@@ -1429,42 +1488,56 @@ while en_fonction:
                                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 80 * size_mult)),
                                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 41 * size_mult),
                                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 41 * size_mult)),
-                                 int(2 * size_mult))
+                                 int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
 
             pygame.draw.line(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_pour_heures,
-                             (int((largeur / 2) + math.cos(math.radians(degree_heures - 90)) * 80 * size_mult),
-                              int((hauteur / 2) + math.sin(math.radians(degree_heures - 90)) * 80 * size_mult)),
-                             (int((largeur / 2) + math.cos(math.radians(degree_heures - 90)) * 41 * size_mult),
-                              int((hauteur / 2) + math.sin(math.radians(degree_heures - 90)) * 41 * size_mult)),
-                             int(2 * size_mult))
+                             (int((largeur / 2) + math.cos(degree_heures_ligne) * 80 * size_mult),
+                              int((hauteur / 2) + math.sin(degree_heures_ligne) * 80 * size_mult)),
+                             (int((largeur / 2) + math.cos(degree_heures_ligne) * 41 * size_mult),
+                              int((hauteur / 2) + math.sin(degree_heures_ligne) * 41 * size_mult)),
+                             int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
 
-        # Couleurs secondes
-        couleur_pour_secondes = seconde_a_couleur(seconde_precise)
+    # Couleurs secondes
+    couleur_pour_secondes = seconde_a_couleur(seconde_precise)
+
+    if ClockSettings.LOW_FRAMERATE_MODE or color_wheel_active:
         pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(111 - degree_secondes),
+                        math.radians(123 - degree_secondes), int(30 * size_mult))
+        pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(111.5 - degree_secondes),
                         math.radians(123 - degree_secondes), int(30 * size_mult))
         pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(112 - degree_secondes),
                         math.radians(123 - degree_secondes), int(30 * size_mult))
-        pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(113 - degree_secondes),
-                        math.radians(123 - degree_secondes), int(30 * size_mult))
-        """DISABLED ARCS
-        # Minutes
-        pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
-                        math.radians(90 - ((360 * minute_changeante) / 60)), math.radians(90), int(30 * size_mult))
+    else:
+        # pygame.draw.line(surface, couleur_pour_secondes,
+        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 110)) * 150 * size_mult),
+        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 110)) * 150 * size_mult)),
+        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 110)) * 120 * size_mult),
+        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 110)) * 120 * size_mult)),
+        #                  int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(111 - degree_secondes),
+                        math.radians(114 - degree_secondes), int(30 * size_mult))
 
-        # Heures
-        pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
-                        math.radians(90 - ((360 * heure_changeante) / 12)), math.radians(90), int(40 * size_mult))
-    """
     # Arc secondes (noir)
-    pygame.draw.arc(surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                    rect_arc_secondes, math.radians(70 - degree_secondes),
-                    math.radians(80 - degree_secondes), int(34 * size_mult))
-    pygame.draw.arc(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                    rect_arc_secondes, math.radians(71 - degree_secondes),
-                    math.radians(80 - degree_secondes), int(34 * size_mult))
-    pygame.draw.arc(surface, [0, 0, 255] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                    rect_arc_secondes, math.radians(72 - degree_secondes),
-                    math.radians(111 - degree_secondes), int(34 * size_mult))
+    if ClockSettings.LOW_FRAMERATE_MODE:
+        pygame.draw.arc(surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
+                        rect_arc_secondes, math.radians(70 - degree_secondes),
+                        math.radians(80 - degree_secondes), int(34 * size_mult))
+        pygame.draw.arc(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
+                        rect_arc_secondes, math.radians(70.5 - degree_secondes),
+                        math.radians(80 - degree_secondes), int(34 * size_mult))
+        pygame.draw.arc(surface, [0, 0, 255] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
+                        rect_arc_secondes, math.radians(71 - degree_secondes),
+                        math.radians(80 - degree_secondes), int(34 * size_mult))
+    else:
+        # pygame.draw.line(surface, couleur_arc_secondes,
+        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 70)) * 151 * size_mult),
+        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 70)) * 151 * size_mult)),
+        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 70)) * 119 * size_mult),
+        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 70)) * 119 * size_mult)),
+        #                  int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        pygame.draw.arc(surface, [25, 25, 25] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
+                        rect_arc_secondes, math.radians(70 - degree_secondes),
+                        math.radians(74 - degree_secondes), int(34 * size_mult))
 
     ecran.blit(surface, [0, 0])
 
@@ -1479,84 +1552,103 @@ while en_fonction:
 
     if str(seconde) != text_dict['seconde']['text']:
         text_dict['seconde']['text'] = str(seconde)
-        text_dict['seconde']['surface'] = font_25.render(str(seconde), True, [255, 255, 255])
-    texte = pygame.transform.rotozoom(text_dict['seconde']['surface'], -degree_secondes + (180 if 45 > seconde_precise > 15 else 0), 1)
-    texte_rect = texte.get_rect(center=(
+        text_dict['seconde']['surface'] = font_25.render(' ' + str(seconde) + ' ', True, [255, 255, 255])
+    text_dict['seconde']['rotated_surface'] = pygame.transform.rotozoom(text_dict['seconde']['surface'],
+                                                                        -degree_secondes + (
+                                                                            180 if 45 > seconde_precise > 15 else 0), 1)
+    text_dict['seconde']['rect'] = text_dict['seconde']['rotated_surface'].get_rect(center=(
         int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 135 * size_mult),
         int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 135 * size_mult)))
-    ecran.blit(texte, texte_rect)
+    ecran.blit(text_dict['seconde']['rotated_surface'], text_dict['seconde']['rect'])
 
     if retour_thread['detailed_info'] != text_dict['detailed_info']['text']:
         text_dict['detailed_info']['text'] = retour_thread['detailed_info']
-        text_dict['detailed_info']['surface'] = font_17.render(retour_thread['detailed_info'], True, couleur_fond_inverse, couleur_fond)
+        text_dict['detailed_info']['surface'] = font_17.render(retour_thread['detailed_info'], True,
+                                                               couleur_fond_inverse)
         text_dict['detailed_info']['rect'] = text_dict['detailed_info']['surface'].get_rect()
         text_dict['detailed_info']['rect'].left = int(2 * size_mult)
     ecran.blit(text_dict['detailed_info']['surface'], text_dict['detailed_info']['rect'])
 
     if (retour_thread['temperature'][0] or text_anim_frames[text_anim_frame]) != text_dict['temperature']['text']:
         text_dict['temperature']['text'] = retour_thread['temperature'][0] or text_anim_frames[text_anim_frame]
-        text_dict['temperature']['surface'] = font_25.render(retour_thread['temperature'][0] or text_anim_frames[text_anim_frame], True, retour_thread['temperature'][1]['couleur'])
+        text_dict['temperature']['surface'] = font_25.render(
+            retour_thread['temperature'][0] or text_anim_frames[text_anim_frame], True,
+            retour_thread['temperature'][1]['couleur'])
         text_dict['temperature']['rect'] = text_dict['temperature']['surface'].get_rect()
         texte_bottom = text_dict['detailed_info']['rect'].bottom
         text_dict['temperature']['rect'].top = texte_bottom
         text_dict['temperature']['rect'].left = int(2 * size_mult)
         text_dict['pourcent_pluie']['text'] = 'update me'
-    texte_rect_final = text_dict['temperature']['rect']
-    texte = text_dict['temperature']['surface']
+    text_dict['temperature']['wiggle_rect'] = text_dict['temperature']['rect']
+    text_dict['temperature']['wiggle_surface'] = text_dict['temperature']['surface']
     if retour_thread['temperature'][1]['wiggle'] != 0:
-        texte = pygame.transform.rotate(text_dict['temperature']['surface'],
-                                        (retour_thread['temperature'][1]['wiggle'] * math.sin(millisec * 25)))
-        texte_rect_final = texte.get_rect(center=text_dict['temperature']['rect'].center)
-    ecran.blit(texte, texte_rect_final)
-
+        text_dict['temperature']['wiggle_surface'] = pygame.transform.rotate(text_dict['temperature']['surface'], (
+                retour_thread['temperature'][1]['wiggle'] * math.sin(millisec * 25)))
+        text_dict['temperature']['wiggle_rect'] = text_dict['temperature']['wiggle_surface'].get_rect(
+            center=text_dict['temperature']['rect'].center)
+    ecran.blit(text_dict['temperature']['wiggle_surface'], text_dict['temperature']['wiggle_rect'])
 
     if retour_thread['weather_icon']:
         image_rect = weather_icons[retour_thread['weather_icon']].get_rect()
-        image_rect.centery = texte_rect_final.centery
+        image_rect.centery = text_dict['temperature']['wiggle_rect'].centery
         image_rect.left = text_dict['temperature']['rect'].right + (5 * size_mult)
         ecran.blit(weather_icons[retour_thread['weather_icon']], image_rect)
 
     if (retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]) != text_dict['pourcent_pluie']['text']:
         text_dict['pourcent_pluie']['text'] = retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]
-        text_dict['pourcent_pluie']['surface'] = font_17.render(retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
-        text_dict['pourcent_pluie']['rect'] = text_dict['pourcent_pluie']['surface'].get_rect(center=(text_dict['temperature']['rect'].center[0], 0))
+        text_dict['pourcent_pluie']['surface'] = font_17.render(
+            retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
+        text_dict['pourcent_pluie']['rect'] = text_dict['pourcent_pluie']['surface'].get_rect(
+            center=(text_dict['temperature']['rect'].center[0], 0))
         text_dict['pourcent_pluie']['rect'].top = text_dict['temperature']['rect'].bottom
     ecran.blit(text_dict['pourcent_pluie']['surface'], text_dict['pourcent_pluie']['rect'])
 
     if EthermineAPI.ENABLE_ETHERMINE_STATS:
-        if (retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][1]['text']:
-            text_dict['ethermine_data'][1]['text'] = retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]
-            text_dict['ethermine_data'][1]['surface'] = font_17.render(retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+        if (retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][1][
+            'text']:
+            text_dict['ethermine_data'][1]['text'] = retour_thread['ethermine_data'][1] or text_anim_frames[
+                text_anim_frame]
+            text_dict['ethermine_data'][1]['surface'] = font_17.render(
+                retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
             text_dict['ethermine_data'][1]['rect'] = text_dict['ethermine_data'][1]['surface'].get_rect()
             text_dict['ethermine_data'][1]['rect'].bottom = hauteur
             text_dict['ethermine_data'][1]['rect'].left = int(2 * size_mult)
         ecran.blit(text_dict['ethermine_data'][1]['surface'], text_dict['ethermine_data'][1]['rect'])
 
-        if (retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][0]['text']:
-            text_dict['ethermine_data'][0]['text'] = retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]
-            text_dict['ethermine_data'][0]['surface'] = font_17.render(retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+        if (retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][0][
+            'text']:
+            text_dict['ethermine_data'][0]['text'] = retour_thread['ethermine_data'][1] or text_anim_frames[
+                text_anim_frame]
+            text_dict['ethermine_data'][0]['surface'] = font_17.render(
+                retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
             texte_top = text_dict['ethermine_data'][1]['rect'].top - (2 * size_mult)
-            text_dict['ethermine_data'][0]['rect'] = text_dict['ethermine_data'][0]['surface'].get_rect(center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
+            text_dict['ethermine_data'][0]['rect'] = text_dict['ethermine_data'][0]['surface'].get_rect(
+                center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
             text_dict['ethermine_data'][0]['rect'].bottom = int(texte_top)
         ecran.blit(text_dict['ethermine_data'][0]['surface'], text_dict['ethermine_data'][0]['rect'])
 
-        if (retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][2]['text']:
-            text_dict['ethermine_data'][2]['text'] = retour_thread['ethermine_data'][0] or text_anim_frames[text_anim_frame]
-            text_dict['ethermine_data'][2]['surface'] = font_17.render(retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
-            #text_dict['ethermine_data'][2]['rect'] = text_dict['ethermine_data'][2]['surface'].get_rect()
+        if (retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][2][
+            'text']:
+            text_dict['ethermine_data'][2]['text'] = retour_thread['ethermine_data'][0] or text_anim_frames[
+                text_anim_frame]
+            text_dict['ethermine_data'][2]['surface'] = font_17.render(
+                retour_thread['ethermine_data'][2] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
             texte_top = text_dict['ethermine_data'][0]['rect'].top - (2 * size_mult)
-            text_dict['ethermine_data'][2]['rect'] = text_dict['ethermine_data'][2]['surface'].get_rect(center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
+            text_dict['ethermine_data'][2]['rect'] = text_dict['ethermine_data'][2]['surface'].get_rect(
+                center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
             text_dict['ethermine_data'][2]['rect'].bottom = int(texte_top)
 
             texte_top = text_dict['ethermine_data'][2]['rect'].top
-            text_dict['texte_mining']['rect'] = text_dict['texte_mining']['surface'].get_rect(center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
+            text_dict['texte_mining']['rect'] = text_dict['texte_mining']['surface'].get_rect(
+                center=(text_dict['ethermine_data'][1]['rect'].center[0], 0))
             text_dict['texte_mining']['rect'].bottom = texte_top
         ecran.blit(text_dict['ethermine_data'][2]['surface'], text_dict['ethermine_data'][2]['rect'])
         ecran.blit(text_dict['texte_mining']['surface'], text_dict['texte_mining']['rect'])
 
     if (retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_bitcoin']['text']:
         text_dict['valeur_bitcoin']['text'] = retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]
-        text_dict['valeur_bitcoin']['surface'] = font_17.render(retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse,couleur_fond)
+        text_dict['valeur_bitcoin']['surface'] = font_17.render(
+            retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
         text_dict['valeur_bitcoin']['rect'] = text_dict['valeur_bitcoin']['surface'].get_rect()
         texte_top = text_dict['texte_mining']['rect'].top - (2 * size_mult)
         text_dict['valeur_bitcoin']['rect'].left = int(2 * size_mult)
@@ -1566,41 +1658,48 @@ while en_fonction:
             text_dict['valeur_bitcoin']['rect'].bottom = hauteur
 
         texte_top = text_dict['valeur_bitcoin']['rect'].top
-        text_dict['BTC']['rect'] = text_dict['BTC']['surface'].get_rect(center=(text_dict['valeur_bitcoin']['rect'].center[0], 0))
+        text_dict['BTC']['rect'] = text_dict['BTC']['surface'].get_rect(
+            center=(text_dict['valeur_bitcoin']['rect'].center[0], 0))
         text_dict['BTC']['rect'].bottom = texte_top
     ecran.blit(text_dict['valeur_bitcoin']['surface'], text_dict['valeur_bitcoin']['rect'])
     ecran.blit(text_dict['BTC']['surface'], text_dict['BTC']['rect'])
 
-
     if (retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_ethereum']['text']:
         text_dict['valeur_ethereum']['text'] = retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]
-        text_dict['valeur_ethereum']['surface'] = font_17.render(retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+        text_dict['valeur_ethereum']['surface'] = font_17.render(
+            retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
         text_dict['valeur_ethereum']['rect'] = text_dict['valeur_ethereum']['surface'].get_rect()
         texte_top = text_dict['BTC']['rect'].top - (2 * size_mult)
         text_dict['valeur_ethereum']['rect'].left = int(2 * size_mult)
         text_dict['valeur_ethereum']['rect'].bottom = int(texte_top)
 
         texte_top = text_dict['valeur_ethereum']['rect'].top
-        text_dict['ETH']['rect'] = text_dict['ETH']['surface'].get_rect(center=(text_dict['valeur_ethereum']['rect'].center[0], 0))
+        text_dict['ETH']['rect'] = text_dict['ETH']['surface'].get_rect(
+            center=(text_dict['valeur_ethereum']['rect'].center[0], 0))
         text_dict['ETH']['rect'].bottom = texte_top
     ecran.blit(text_dict['valeur_ethereum']['surface'], text_dict['valeur_ethereum']['rect'])
     ecran.blit(text_dict['ETH']['surface'], text_dict['ETH']['rect'])
 
-
-    if (retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame]) != text_dict['fetching_animation']['text']:
-        text_dict['fetching_animation']['text'] = retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame]
-        text_dict['fetching_animation']['surface'] = font_17.render(retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse, couleur_fond)
+    if (retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame]) != \
+            text_dict['fetching_animation']['text']:
+        text_dict['fetching_animation']['text'] = retour_thread['fetching_animation_text'] or text_anim_frames[
+            text_anim_frame]
+        text_dict['fetching_animation']['surface'] = font_17.render(
+            retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
         texte_top = text_dict['ETH']['rect'].top - (20 * size_mult)
         text_dict['fetching_animation']['rect'] = text_dict['fetching_animation']['surface'].get_rect()
         text_dict['fetching_animation']['rect'].left = int(2 * size_mult)
         text_dict['fetching_animation']['rect'].bottom = int(texte_top)
     ecran.blit(text_dict['fetching_animation']['surface'], text_dict['fetching_animation']['rect'])
 
-    if noms_jours_semaine[num_jour_semaine] != text_dict['noms_jours_semaine']['text'] or text_jour_semaine_couleur != text_dict['noms_jours_semaine']['color']:
+    if noms_jours_semaine[num_jour_semaine] != text_dict['noms_jours_semaine']['text'] or text_jour_semaine_couleur != \
+            text_dict['noms_jours_semaine']['color']:
         text_dict['noms_jours_semaine']['text'] = noms_jours_semaine[num_jour_semaine]
         text_dict['noms_jours_semaine']['color'] = text_jour_semaine_couleur
-        text_dict['noms_jours_semaine']['surface'] = font_25.render(noms_jours_semaine[num_jour_semaine], True, text_jour_semaine_couleur, couleur_fond)
-        text_dict['noms_jours_semaine']['rect'] = text_dict['noms_jours_semaine']['surface'].get_rect(center=(largeur - centre_date, 0))
+        text_dict['noms_jours_semaine']['surface'] = font_25.render(noms_jours_semaine[num_jour_semaine], True,
+                                                                    text_jour_semaine_couleur)
+        text_dict['noms_jours_semaine']['rect'] = text_dict['noms_jours_semaine']['surface'].get_rect(
+            center=(largeur - centre_date, 0))
         text_dict['noms_jours_semaine']['rect'].top = 0
     ecran.blit(text_dict['noms_jours_semaine']['surface'], text_dict['noms_jours_semaine']['rect'])
 
@@ -1608,7 +1707,8 @@ while en_fonction:
         text_dict['num_jour']['text'] = num_jour
         text_dict['num_jour']['surface'] = font_40.render(num_jour, True, couleur_fond_inverse)
         texte_bottom = text_dict['noms_jours_semaine']['rect'].bottom
-        text_dict['num_jour']['rect'] = text_dict['num_jour']['surface'].get_rect(center=(text_dict['noms_jours_semaine']['rect'].center[0], 0))
+        text_dict['num_jour']['rect'] = text_dict['num_jour']['surface'].get_rect(
+            center=(text_dict['noms_jours_semaine']['rect'].center[0], 0))
         text_dict['num_jour']['rect'].top = int(texte_bottom - (12 * size_mult))
     ecran.blit(text_dict['num_jour']['surface'], text_dict['num_jour']['rect'])
 
@@ -1616,7 +1716,8 @@ while en_fonction:
         text_dict['noms_mois']['text'] = noms_mois[num_mois]
         text_dict['noms_mois']['surface'] = font_17.render(noms_mois[num_mois], True, couleur_fond_inverse)
         texte_bottom = text_dict['num_jour']['rect'].bottom
-        text_dict['noms_mois']['rect'] = text_dict['noms_mois']['surface'].get_rect(center=(text_dict['num_jour']['rect'].center[0], 0))
+        text_dict['noms_mois']['rect'] = text_dict['noms_mois']['surface'].get_rect(
+            center=(text_dict['num_jour']['rect'].center[0], 0))
         text_dict['noms_mois']['rect'].top = int(texte_bottom - (10 * size_mult))
     ecran.blit(text_dict['noms_mois']['surface'], text_dict['noms_mois']['rect'])
 
@@ -1644,7 +1745,7 @@ while en_fonction:
 
         if temps_restant != text_dict['temps_restant']['text']:
             text_dict['temps_restant']['text'] = temps_restant
-            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse, couleur_fond)
+            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse)
             text_dict['temps_restant']['rect'] = text_dict['temps_restant']['surface'].get_rect()
             text_dict['temps_restant']['rect'].right = int(largeur - (2 * size_mult))
             text_dict['temps_restant']['rect'].bottom = hauteur
@@ -1660,10 +1761,12 @@ while en_fonction:
 
         titre_countdown = 'Noël :D'
 
-        if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != text_dict['titre_countdown']['color']:
+        if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != \
+                text_dict['titre_countdown']['color']:
             text_dict['titre_countdown']['text'] = titre_countdown
             text_dict['titre_countdown']['color'] = couleur_titre_countdown
-            text_dict['titre_countdown']['surface'] = font_17.render(titre_countdown, True, couleur_titre_countdown, couleur_fond)
+            text_dict['titre_countdown']['surface'] = font_17.render(titre_countdown, True, couleur_titre_countdown,
+                                                                     couleur_fond)
             texte_top = text_dict['temps_restant']['rect'].top
             text_dict['titre_countdown']['rect'] = text_dict['titre_countdown']['surface'].get_rect()
             text_dict['titre_countdown']['rect'].right = int(largeur - (2 * size_mult))
@@ -1673,7 +1776,8 @@ while en_fonction:
     # End countdown timer
     if calculated_fps != text_dict['calculated_fps']['text']:
         text_dict['calculated_fps']['text'] = calculated_fps
-        text_dict['calculated_fps']['surface'] = font_17.render(calculated_fps, True, couleur_fond_inverse, couleur_fond)
+        text_dict['calculated_fps']['surface'] = font_17.render(calculated_fps, True, couleur_fond_inverse,
+                                                                couleur_fond)
         texte_top = text_dict['titre_countdown']['rect'].top
         text_dict['calculated_fps']['rect'] = text_dict['calculated_fps']['surface'].get_rect()
         text_dict['calculated_fps']['rect'].right = int(largeur - (2 * size_mult))
@@ -1739,15 +1843,22 @@ while en_fonction:
         ecran.blit(texte, texte_rect)
 
     if peek_animating:
+        if duree_last_frame > 0.1:
+            peek_time = peek_time + 0.1
+
         if time.time() - peek_time >= 0.5:
-            peek_radius = int(((time.time() - peek_time) - 0.5) * 250 * size_mult)
+            if not duree_last_frame:
+                peek_time = time.time() - 0.5
+
+            peek_radius = int(
+                ((time.time() - peek_time) - 0.5) * (100 if ClockSettings.LOW_FRAMERATE_MODE else 250) * size_mult)
             pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2],
                                peek_radius + int(5 * size_mult))
             pygame.draw.circle(peek_surface, [255, 255, 255], [largeur // 2, hauteur // 2], peek_radius)
 
             if peek_radius > peek_radius_limit:
                 peek_animating = False
-                Thread(target=get_data, args=(retour_thread, True, True)).start()
+                Thread(target=get_data, args=(retour_thread, True)).start()
 
         ecran.blit(peek_surface, [0, 0])
 
@@ -1758,9 +1869,10 @@ while en_fonction:
 
     frame_counter += 1
     if changement_seconde:
-        calculated_fps = '{} fps'.format(round(frame_counter / (time.time() - fps_start_time)))
+        if not toggle_menu and not color_wheel_active:
+            pygame.mouse.set_visible(False)
+        calculated_fps = '{} fps'.format(frame_counter)
         frame_counter = 0
-        fps_start_time = time.time()
 
 pygame.mouse.set_visible(False)
 pygame.draw.rect(surface, couleur_fond, [0, 0, largeur, hauteur])
@@ -1780,5 +1892,6 @@ if not startup_complete:
         GPIO.setup(23, GPIO.OUT)
         GPIO.output(23, 1)
         os.system("sudo reboot")
+        time.sleep(5)
     except Exception:
         pass
