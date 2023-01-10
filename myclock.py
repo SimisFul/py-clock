@@ -191,6 +191,9 @@ def show_peek_loading_screen(largeur, hauteur):
 
                 if wait_for_peek_animation:
                     # wait_for_peek_animation set to True by main thread, don't start another loop. Prevents animation from looping again on horrendously slow hardware
+                    if ClockSettings.DEBUG_MODE:
+                        canvas.itemconfigure(circle_list[0], fill='#ff4d4d')
+                        loading_master.update()
                     while not startup_complete:
                         time.sleep(0.1)
                     break
@@ -947,8 +950,6 @@ for index in range(0, len(images_filenames)):
 
 status_loading_text = "Touches finales"
 
-peek_surface = pygame.Surface(resolution)
-
 pygame.font.init()
 
 font_path = os.path.join(clock_files_folder, ClockSettings.FONT)
@@ -959,6 +960,50 @@ font_17 = pygame.font.Font(font_path, int(17 * font_ratio * size_mult))
 font_25 = pygame.font.Font(font_path, int(25 * font_ratio * size_mult))
 font_40 = pygame.font.Font(font_path, int(40 * font_ratio * size_mult))
 font_100 = pygame.font.Font(font_path, int(100 * font_ratio * size_mult))
+
+# ------------------------------------------MENU------------------------------------------ #
+
+menu_surface = pygame.Surface(resolution, pygame.SRCALPHA)
+
+# Drawing background outline
+pygame.draw.rect(menu_surface, [75, 75, 75, 240], [8 * size_mult, 24 * size_mult, largeur - (16 * size_mult), hauteur - (48 * size_mult)])
+pygame.draw.rect(menu_surface, [75, 75, 75, 240], [24 * size_mult, 8 * size_mult, largeur - (48 * size_mult), hauteur - (16 * size_mult)])
+# Corners
+pygame.draw.circle(menu_surface, [75, 75, 75, 240], [int(24 * size_mult), int(24 * size_mult)], int(16 * size_mult))
+pygame.draw.circle(menu_surface, [75, 75, 75, 240], [int(largeur - (24 * size_mult)), int(24 * size_mult)], int(16 * size_mult))
+pygame.draw.circle(menu_surface, [75, 75, 75, 240], [int(24 * size_mult), int(hauteur - (24 * size_mult))], int(16 * size_mult))
+pygame.draw.circle(menu_surface, [75, 75, 75, 240], [int(largeur - (24 * size_mult)), int(hauteur - (24 * size_mult))], int(16 * size_mult))
+
+# Drawing background
+pygame.draw.rect(menu_surface, [25, 25, 25, 240], [11 * size_mult, 27 * size_mult, largeur - (22 * size_mult), hauteur - (54 * size_mult)])
+pygame.draw.rect(menu_surface, [25, 25, 25, 240], [27 * size_mult, 11 * size_mult, largeur - (54 * size_mult), hauteur - (22 * size_mult)])
+# Corners
+pygame.draw.circle(menu_surface, [25, 25, 25, 240], [int(27 * size_mult), int(27 * size_mult)], int(16 * size_mult))
+pygame.draw.circle(menu_surface, [25, 25, 25, 240], [int(largeur - (27 * size_mult)), int(27 * size_mult)], int(16 * size_mult))
+pygame.draw.circle(menu_surface, [25, 25, 25, 240], [int(27 * size_mult), int(hauteur - (27 * size_mult))], int(16 * size_mult))
+pygame.draw.circle(menu_surface, [25, 25, 25, 240], [int(largeur - (27 * size_mult)), int(hauteur - (27 * size_mult))], int(16 * size_mult))
+
+
+texte = font_25.render("Menu", True, [255, 255, 255])
+texte_rect = texte.get_rect(center=((largeur // 2), 0))
+texte_rect.top = 11 * size_mult
+menu_surface.blit(texte, texte_rect)
+
+texte = font_40.render("Oui", True, [0, 255, 0])
+texte_rect = texte.get_rect(center=((largeur // 6), (hauteur // 2)))
+menu_surface.blit(texte, texte_rect)
+
+texte = font_40.render("Non", True, [255, 0, 0])
+texte_rect = texte.get_rect(center=((largeur // 2), (hauteur // 2)))
+menu_surface.blit(texte, texte_rect)
+
+texte = font_40.render("Reboot", True, [0, 0, 255])
+texte_rect = texte.get_rect(center=((5 * largeur) // 6, (hauteur // 2)))
+menu_surface.blit(texte, texte_rect)
+
+menu_anim = {'active': False, 'is_opening': False}
+
+# ---------------------------------------------------------------------------------------- #
 
 heure = maintenant.hour
 
@@ -1168,6 +1213,8 @@ notifications = {"11:55": ["À LA", "BOUFFE"],
 
 couleur_arc_secondes = [0, 0, 0]
 
+peek_surface = pygame.Surface(resolution)
+
 pygame.draw.circle(peek_surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(120.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
@@ -1200,11 +1247,13 @@ if ClockSettings.LOADING_ANIMATION_SELECTION == 'peek' and ClockSettings.ENABLE_
     peek_animating = True
     peek_surface.set_colorkey([255, 255, 255])
 
-peek_time = time.time()
-
 print("Done initialising!")
 
 loading_master.destroy()
+
+maintenant = datetime.datetime.now()
+
+peek_status = 0
 
 get_forecast_too = True
 
@@ -1214,8 +1263,6 @@ if ClockSettings.LOADING_ANIMATION_SELECTION != 'peek' or not ClockSettings.ENAB
 frame_counter = 0
 
 surface = pygame.Surface(resolution)
-
-maintenant = datetime.datetime.now()
 
 while en_fonction:
     maintenant_precedent = maintenant
@@ -1601,7 +1648,8 @@ while en_fonction:
         text_dict['pourcent_pluie']['rect'] = text_dict['pourcent_pluie']['surface'].get_rect(
             center=(text_dict['temperature']['rect'].center[0], 0))
         text_dict['pourcent_pluie']['rect'].top = text_dict['temperature']['rect'].bottom
-    ecran.blit(text_dict['pourcent_pluie']['surface'], text_dict['pourcent_pluie']['rect'])
+    if text_dict['pourcent_pluie']['text'] != ' ':
+        ecran.blit(text_dict['pourcent_pluie']['surface'], text_dict['pourcent_pluie']['rect'])
 
     if EthermineAPI.ENABLE_ETHERMINE_STATS:
         if (retour_thread['ethermine_data'][1] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][1][
@@ -1690,7 +1738,8 @@ while en_fonction:
         text_dict['fetching_animation']['rect'] = text_dict['fetching_animation']['surface'].get_rect()
         text_dict['fetching_animation']['rect'].left = int(2 * size_mult)
         text_dict['fetching_animation']['rect'].bottom = int(texte_top)
-    ecran.blit(text_dict['fetching_animation']['surface'], text_dict['fetching_animation']['rect'])
+    if text_dict['fetching_animation']['text'] != ' ':
+        ecran.blit(text_dict['fetching_animation']['surface'], text_dict['fetching_animation']['rect'])
 
     if noms_jours_semaine[num_jour_semaine] != text_dict['noms_jours_semaine']['text'] or text_jour_semaine_couleur != \
             text_dict['noms_jours_semaine']['color']:
@@ -1756,7 +1805,7 @@ while en_fonction:
         # Smooth
         # couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
         # Noel (vert/rouge)
-        if changement_seconde:
+        if changement_seconde or first_frame:
             couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
 
         titre_countdown = 'Noël :D'
@@ -1824,34 +1873,24 @@ while en_fonction:
     # --------------------------------------------------------------------------------------- #
 
     if toggle_menu:
-        pygame.draw.rect(ecran, [0, 0, 0], [0, 0, largeur, hauteur])
-
-        texte = font_25.render("Voulez-vous vraiment quitter?", True, [255, 255, 255], [0, 0, 0])
-        texte_rect = texte.get_rect(center=((largeur // 2), hauteur // 4))
-        ecran.blit(texte, texte_rect)
-
-        texte = font_40.render("Oui", True, [0, 255, 0])
-        texte_rect = texte.get_rect(center=((largeur // 6), (hauteur // 2)))
-        ecran.blit(texte, texte_rect)
-
-        texte = font_40.render("Non", True, [255, 0, 0])
-        texte_rect = texte.get_rect(center=((largeur // 2), (hauteur // 2)))
-        ecran.blit(texte, texte_rect)
-
-        texte = font_40.render("Reboot", True, [0, 0, 255])
-        texte_rect = texte.get_rect(center=((5 * largeur) // 6, (hauteur // 2)))
-        ecran.blit(texte, texte_rect)
+        ecran.blit(menu_surface, [0, 0])
 
     if peek_animating:
-        if duree_last_frame > 0.1:
-            peek_time = peek_time + 0.1
+        peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
 
-        if time.time() - peek_time >= 0.5:
-            if not duree_last_frame:
-                peek_time = time.time() - 0.5
+        if (datetime.datetime.now() - maintenant).total_seconds() > 0.5 and first_frame:
+            peek_status = 0.49
 
-            peek_radius = int(
-                ((time.time() - peek_time) - 0.5) * (100 if ClockSettings.LOW_FRAMERATE_MODE else 250) * size_mult)
+            if ClockSettings.DEBUG_MODE:
+                texte = font_25.render(
+                    'Lag: ' + str(round((datetime.datetime.now() - maintenant).total_seconds(), 2)) + 's', True,
+                    [200, 50, 50], [0, 0, 0])
+                texte_rect = texte.get_rect()
+                texte_rect.left, texte_rect.bottom = 0, hauteur
+                peek_surface.blit(texte, texte_rect)
+
+        if peek_status >= 0.5:
+            peek_radius = int((peek_status - 0.5) * (100 if ClockSettings.LOW_FRAMERATE_MODE else 250) * size_mult)
             pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2],
                                peek_radius + int(5 * size_mult))
             pygame.draw.circle(peek_surface, [255, 255, 255], [largeur // 2, hauteur // 2], peek_radius)
@@ -1863,6 +1902,9 @@ while en_fonction:
         ecran.blit(peek_surface, [0, 0])
 
     duree_last_frame = sleep_until_next_frame()
+
+    if first_frame:
+        first_frame = False
 
     if not startup_complete and en_fonction:
         startup_complete = True
