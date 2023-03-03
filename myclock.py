@@ -7,14 +7,21 @@ class ClockSettings(object):
     FRAMERATE = None  # None = unlimited fps
     LOW_FRAMERATE_MODE = False
     FONT = "moonget.ttf"
-    FULLSCREEN = True
-    WINDOWED_WIDTH = 512
-    WINDOWED_HEIGHT = 384
     ENABLE_LOADING_ANIMATION = True
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
     DEBUG_LOADING_ANIMATION = False
     FETCH_RELAIS_DATA = True
     SHOW_MINING_INFO = True
+
+
+class DisplaySettings(object):
+    SCREEN_WIDTH = 512
+    SCREEN_HEIGHT = 384
+    FULLSCREEN = False
+    AUTOMATIC_RESOLUTION = False
+    BORDERLESS_WINDOW = True
+    X_POS = '0'
+    Y_POS = '0'
 
 
 class AnimationLoopSettings(object):
@@ -33,8 +40,9 @@ def show_progress_loading_screen(largeur, hauteur):
 
     loading_master = tk.Tk()
 
-    loading_master.minsize(width=largeur, height=hauteur)
-    loading_master.attributes("-fullscreen", ClockSettings.FULLSCREEN)
+    loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
+    loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not DisplaySettings.FULLSCREEN)
+    loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
     loading_master.config(cursor="none")
     loading_master["bg"] = "black"
     canvas = tk.Canvas(loading_master, width=70 * size_mult, height=70 * size_mult, highlightthickness=0)
@@ -100,8 +108,9 @@ def show_peek_loading_screen(largeur, hauteur):
 
     loading_master = tk.Tk()
 
-    loading_master.minsize(width=largeur, height=hauteur)
-    loading_master.attributes("-fullscreen", ClockSettings.FULLSCREEN)
+    loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
+    loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not DisplaySettings.FULLSCREEN)
+    loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
     loading_master.config(cursor="none")
     loading_master["bg"] = "black"
     loading_master.update()
@@ -218,6 +227,8 @@ if os.name == "nt":
 
     windll.user32.SetProcessDPIAware()
 
+os.environ['SDL_VIDEO_WINDOW_POS'] = DisplaySettings.X_POS + ',' + DisplaySettings.Y_POS
+
 status_loading_text = "Modules"
 startup_complete = False
 lift_loading_master = False
@@ -225,13 +236,13 @@ wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION == 'peek' an
 
 loading_master = tk.Tk()
 
-if ClockSettings.FULLSCREEN:
+if DisplaySettings.AUTOMATIC_RESOLUTION:
     largeur = loading_master.winfo_screenwidth()
     hauteur = loading_master.winfo_screenheight()
 
 else:
-    largeur = ClockSettings.WINDOWED_WIDTH
-    hauteur = ClockSettings.WINDOWED_HEIGHT
+    largeur = DisplaySettings.SCREEN_WIDTH
+    hauteur = DisplaySettings.SCREEN_HEIGHT
 
 if largeur > hauteur:
     fausse_largeur = hauteur * 1.5
@@ -242,8 +253,9 @@ else:
 resolution = int(largeur), int(hauteur)
 
 # Juste le texte pour afficher le plus rapidement possible
-loading_master.minsize(width=largeur, height=hauteur)
-loading_master.attributes("-fullscreen", ClockSettings.FULLSCREEN)
+loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
+loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not DisplaySettings.FULLSCREEN)
+loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
 loading_master.config(cursor="none")
 loading_master["bg"] = "black"
 loading_master.update()
@@ -268,6 +280,7 @@ loading_master.update()
 from threading import Thread
 import time
 
+
 if ClockSettings.ENABLE_LOADING_ANIMATION:
     if ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
         Thread(target=show_progress_loading_screen, args=(largeur, hauteur), daemon=True).start()
@@ -288,7 +301,7 @@ import pygame
 sys.stdout = old_stdout
 
 if ClockSettings.DEBUG_LOADING_ANIMATION:
-    time.sleep(10)
+    time.sleep(3)
     startup_complete = True
     exit()
 
@@ -477,6 +490,8 @@ def get_data(retour_thread, get_forecast=False):
                 weather_icon = -1
 
             casted_temperature = float(temperature)
+
+            shaking_etat_actuel = 0
 
             if casted_temperature <= -15:
                 # fait frette
@@ -1285,8 +1300,10 @@ while wait_for_peek_animation:
 
 wait_for_peek_animation = True
 
-if ClockSettings.FULLSCREEN:
+if DisplaySettings.FULLSCREEN:
     ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
+elif DisplaySettings.BORDERLESS_WINDOW:
+    ecran = pygame.display.set_mode(resolution, pygame.NOFRAME)
 else:
     ecran = pygame.display.set_mode(resolution)
 
