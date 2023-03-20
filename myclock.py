@@ -6,7 +6,7 @@ class ClockSettings(object):
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
     LOW_FRAMERATE_MODE = False
-    FONT = "moonget.ttf"
+    FONT = "moonget-fixed.ttf"
     ENABLE_LOADING_ANIMATION = True
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
     DEBUG_LOADING_ANIMATION = False
@@ -15,8 +15,8 @@ class ClockSettings(object):
 
 
 class DisplaySettings(object):
-    SCREEN_WIDTH = 512
-    SCREEN_HEIGHT = 384
+    SCREEN_WIDTH = 1024
+    SCREEN_HEIGHT = 600
     FULLSCREEN = False
     AUTOMATIC_RESOLUTION = False
     BORDERLESS_WINDOW = True
@@ -279,7 +279,6 @@ loading_master.update()
 
 from threading import Thread
 import time
-
 
 if ClockSettings.ENABLE_LOADING_ANIMATION:
     if ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
@@ -876,6 +875,28 @@ ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
 pygame.display.set_caption('A cute little clock')
 lift_loading_master = True
 
+peek_surface = pygame.Surface(resolution)
+peek_surface.set_colorkey([100, 50, 0])
+
+pygame.draw.circle(peek_surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
+pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(120.5 * size_mult), int(5 * size_mult))
+pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
+pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
+pygame.display.update()
+
+if not ClockSettings.ENABLE_LOADING_ANIMATION:
+    if DisplaySettings.FULLSCREEN:
+        ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
+    elif DisplaySettings.BORDERLESS_WINDOW:
+        ecran = pygame.display.set_mode(resolution, pygame.NOFRAME)
+    else:
+        ecran = pygame.display.set_mode(resolution)
+
+    ecran.blit(peek_surface, [0, 0])
+    pygame.display.update()
+    loading_master.destroy()
+    pygame.display.update()
+
 maintenant = datetime.datetime.now()
 
 lift_loading_master = True
@@ -1107,7 +1128,6 @@ else:
     rect_arc_heures = [eloignement_heures, (hauteur // 2) - (largeur // 2) + eloignement_heures,
                        largeur - eloignement_heures * 2, largeur - eloignement_heures * 2]
 
-
 # liste_calculs_couleurs = [lambda seconde: [255, int((seconde / 10.0) * 255), 0],
 # lambda seconde: [255 - int((seconde / 10.0) * 255), 255, 0],
 # lambda seconde: [0, 255, int((seconde / 10.0) * 255)],
@@ -1282,15 +1302,6 @@ notifications = {"11:55": ["À LA", "BOUFFE"],
 
 couleur_arc_secondes = [0, 0, 0]
 
-peek_surface = pygame.Surface(resolution)
-peek_surface.set_colorkey([100, 50, 0])
-
-pygame.draw.circle(peek_surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
-pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(120.5 * size_mult), int(5 * size_mult))
-pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
-pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
-pygame.display.update()
-
 peek_animating = False
 peek_radius = 0
 peek_radius_limit = math.sqrt(hauteur ** 2 + largeur ** 2) / 2
@@ -1300,15 +1311,14 @@ while wait_for_peek_animation:
 
 wait_for_peek_animation = True
 
-if DisplaySettings.FULLSCREEN:
-    ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
-elif DisplaySettings.BORDERLESS_WINDOW:
-    ecran = pygame.display.set_mode(resolution, pygame.NOFRAME)
-else:
-    ecran = pygame.display.set_mode(resolution)
-
-
 if ClockSettings.ENABLE_LOADING_ANIMATION:
+    if DisplaySettings.FULLSCREEN:
+        ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
+    elif DisplaySettings.BORDERLESS_WINDOW:
+        ecran = pygame.display.set_mode(resolution, pygame.NOFRAME)
+    else:
+        ecran = pygame.display.set_mode(resolution)
+
     ecran.blit(peek_surface, [0, 0])
     pygame.display.update()
     lift_loading_master = True
@@ -1317,12 +1327,9 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
     while lift_loading_master:
         continue
 
-    pygame.display.update()
-
+pygame.display.update()
 
 print("Done initialising!")
-
-loading_master.destroy()
 
 maintenant = datetime.datetime.now()
 
@@ -1342,7 +1349,7 @@ while en_fonction:
     maintenant = datetime.datetime.now()
 
     for event in pygame.event.get():
-        if event.type == pygame.MOUSEMOTION and not peek_animating:
+        if event.type == pygame.MOUSEMOTION and not first_frame:
             pygame.mouse.set_visible(True)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -2002,7 +2009,6 @@ while peek_radius <= peek_radius_limit:
     ecran.blit(surface, [0, 0])
     ecran.blit(peek_surface, [0, 0])
 
-    pygame.display.update()
     duree_last_frame = sleep_until_next_frame()
 
 time.sleep(1)

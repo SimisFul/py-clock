@@ -1,0 +1,3 @@
+Pour fixer un font qui render différemment selon la version de python/pygame/whatever, il faut que la propriété "fsSelection" du fichier du font soit à 0.
+
+Avec le logiciel FontForge: Élément -> Infos fonte... -> OS/2 -> Métriques -> Décocher "Utiliser vraiment les métriques typographiques"
