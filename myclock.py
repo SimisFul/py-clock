@@ -10,7 +10,7 @@ class ClockSettings(object):
     ENABLE_LOADING_ANIMATION = True
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
     DEBUG_LOADING_ANIMATION = False
-    FETCH_RELAIS_DATA = True
+    FETCH_RELAIS_DATA = False
     SHOW_MINING_INFO = True
 
 
@@ -18,7 +18,7 @@ class DisplaySettings(object):
     SCREEN_WIDTH = 1024
     SCREEN_HEIGHT = 600
     FULLSCREEN = False
-    AUTOMATIC_RESOLUTION = False
+    AUTOMATIC_RESOLUTION = True
     BORDERLESS_WINDOW = True
     X_POS = '0'
     Y_POS = '0'
@@ -98,8 +98,10 @@ def show_progress_loading_screen(largeur, hauteur):
         duree_frame = (time.time() - debut_frame)
         duree_frame = 0.1 if duree_frame > 0.1 else duree_frame
 
-    loading_master.destroy()
+    loading_master.withdraw()
     lift_loading_master = False
+    time.sleep(0.2)
+    loading_master.destroy()
 
 
 def show_peek_loading_screen(largeur, hauteur):
@@ -200,7 +202,7 @@ def show_peek_loading_screen(largeur, hauteur):
                         canvas.itemconfigure(circle_list[0], fill='#ff4d4d')
                         loading_master.update()
                     while not startup_complete:
-                        time.sleep(0.1)
+                        time.sleep(0.05)
                     break
                 else:
                     wait_for_peek_animation = True
@@ -211,8 +213,9 @@ def show_peek_loading_screen(largeur, hauteur):
         duree_frame = 0.1 if duree_frame > 0.1 else duree_frame
 
     loading_master.withdraw()
-    loading_master.destroy()
     lift_loading_master = False
+    time.sleep(0.2)
+    loading_master.destroy()
 
 
 # ---------------------------------------------------------------------------------------- #
@@ -855,47 +858,49 @@ def render_raining(freezing=False, drizzle=False):
 
 # START
 if ClockSettings.DEBUG_MODE:
-    print("DEBUGGING IS ENABLED DO NOT FORGET TO DISABLE IT")
+    print("Debugging mode enabled")
 
 status_loading_text = "Pygame"
 
 if ClockSettings.ENABLE_LOADING_ANIMATION:
     loading_master.withdraw()
     lift_loading_master = True
-else:
-    loading_master.lift()
-    loading_master.update()
 
 pygame.display.init()
+pygame.display.set_caption('A cute little clock')
 
 pygame.mouse.set_visible(False)
 mouse_button_down_time = 0
 
-ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
-pygame.display.set_caption('A cute little clock')
-lift_loading_master = True
-
 peek_surface = pygame.Surface(resolution)
-peek_surface.set_colorkey([100, 50, 0])
 
 pygame.draw.circle(peek_surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(120.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
-pygame.display.update()
 
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
     if DisplaySettings.FULLSCREEN:
+        ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
         ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
     elif DisplaySettings.BORDERLESS_WINDOW:
+        ecran = pygame.display.set_mode((1, 1))
         ecran = pygame.display.set_mode(resolution, pygame.NOFRAME)
     else:
+        ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
         ecran = pygame.display.set_mode(resolution)
 
     ecran.blit(peek_surface, [0, 0])
     pygame.display.update()
-    loading_master.destroy()
+    loading_master.withdraw()
     pygame.display.update()
+else:
+    ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
+    lift_loading_master = True
+
+loading_master.destroy()
+
+surface = pygame.Surface(resolution)
 
 maintenant = datetime.datetime.now()
 
@@ -995,9 +1000,11 @@ menu_rect.centerx = int(largeur / 2)
 
 # Drawing background outline
 pygame.draw.rect(menu_surface, [0, 0, 75, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                 [int(8 * size_mult), int(24 * size_mult), round(menu_width - (16 * size_mult)), round(menu_height - (48 * size_mult))])
+                 [int(8 * size_mult), int(24 * size_mult), round(menu_width - (16 * size_mult)),
+                  round(menu_height - (48 * size_mult))])
 pygame.draw.rect(menu_surface, [75, 0, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                 [int(24 * size_mult), int(8 * size_mult), round(menu_width - (48 * size_mult)), round(menu_height - (16 * size_mult))])
+                 [int(24 * size_mult), int(8 * size_mult), round(menu_width - (48 * size_mult)),
+                  round(menu_height - (16 * size_mult))])
 # Corners
 pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
                    [int(24 * size_mult), int(24 * size_mult)], int(16 * size_mult))
@@ -1010,9 +1017,11 @@ pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE els
 
 # Drawing background
 pygame.draw.rect(menu_surface, [25, 0, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                 [int(11 * size_mult), int(27 * size_mult), round(menu_width - (22 * size_mult)), round(menu_height - (54 * size_mult))])
+                 [int(11 * size_mult), int(27 * size_mult), round(menu_width - (22 * size_mult)),
+                  round(menu_height - (54 * size_mult))])
 pygame.draw.rect(menu_surface, [0, 0, 25, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                 [int(27 * size_mult), int(11 * size_mult), round(menu_width - (54 * size_mult)), round(menu_height - (22 * size_mult))])
+                 [int(27 * size_mult), int(11 * size_mult), round(menu_width - (54 * size_mult)),
+                  round(menu_height - (22 * size_mult))])
 # Corners
 pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
                    [int(27 * size_mult), int(27 * size_mult)], int(16 * size_mult))
@@ -1165,6 +1174,7 @@ is_raspi2fb_active = False
 
 draw_middle_circle = True
 first_frame = True
+frame_counter = 0
 
 arc_cleanup_status = (2 * size_mult)
 do_arc_cleanup = True
@@ -1305,6 +1315,7 @@ couleur_arc_secondes = [0, 0, 0]
 peek_animating = False
 peek_radius = 0
 peek_radius_limit = math.sqrt(hauteur ** 2 + largeur ** 2) / 2
+peek_status = 0
 
 while wait_for_peek_animation:
     time.sleep(0.05)
@@ -1329,20 +1340,16 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 
 pygame.display.update()
 
-print("Done initialising!")
-
-maintenant = datetime.datetime.now()
-
-peek_status = 0
+peek_surface.set_colorkey([100, 50, 0])  # Ici pour aider les update/blit à être plus rapides au bot
 
 get_forecast_too = True
 
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
     Thread(target=get_data, args=(retour_thread, get_forecast_too), daemon=True).start()
 
-frame_counter = 0
+maintenant = datetime.datetime.now()
 
-surface = pygame.Surface(resolution)
+print("Done initialising!")
 
 while en_fonction:
     maintenant_precedent = maintenant
