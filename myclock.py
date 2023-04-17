@@ -1,7 +1,7 @@
 # coding: utf-8
 
 class ClockSettings(object):
-    ENABLE_COUNTDOWN_TIMER = False
+    ENABLE_COUNTDOWN_TIMER = True
     DEBUG_MODE = False
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
@@ -18,7 +18,7 @@ class DisplaySettings(object):
     SCREEN_WIDTH = 1024
     SCREEN_HEIGHT = 600
     FULLSCREEN = False
-    AUTOMATIC_RESOLUTION = True
+    AUTOMATIC_RESOLUTION = False
     BORDERLESS_WINDOW = True
     X_POS = '0'
     Y_POS = '0'
@@ -40,7 +40,8 @@ def show_progress_loading_screen(largeur, hauteur):
 
     loading_master = tk.Tk()
 
-    loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
+    loading_master.geometry(
+        str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
     loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not DisplaySettings.FULLSCREEN)
     loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
     loading_master.config(cursor="none")
@@ -110,7 +111,8 @@ def show_peek_loading_screen(largeur, hauteur):
 
     loading_master = tk.Tk()
 
-    loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
+    loading_master.geometry(
+        str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
     loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not DisplaySettings.FULLSCREEN)
     loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
     loading_master.config(cursor="none")
@@ -196,7 +198,7 @@ def show_peek_loading_screen(largeur, hauteur):
                     if startup_complete:
                         break
 
-                if wait_for_peek_animation:
+                if wait_for_peek_animation and not startup_complete:
                     # wait_for_peek_animation set to True by main thread, don't start another loop. Prevents animation from looping again on horrendously slow hardware
                     if ClockSettings.DEBUG_MODE:
                         canvas.itemconfigure(circle_list[0], fill='#ff4d4d')
@@ -232,7 +234,7 @@ if os.name == "nt":
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = DisplaySettings.X_POS + ',' + DisplaySettings.Y_POS
 
-status_loading_text = "Modules"
+status_loading_text = "Pygame: 1/2"
 startup_complete = False
 lift_loading_master = False
 wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION == 'peek' and ClockSettings.ENABLE_LOADING_ANIMATION
@@ -292,8 +294,7 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 os.system('cls' if os.name == 'nt' else 'clear')
 print("Initializing...")
 
-import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, sys, re
-from random import randint, uniform
+import sys
 
 old_stdout = sys.stdout
 sys.stdout = open(os.devnull, 'w')
@@ -325,6 +326,7 @@ def get_data(retour_thread, get_forecast=False):
     if ClockSettings.DEBUG_MODE:
         print("SKIPPING REQUESTS FOR DEBUG")
         retour_thread['weather_animation'] = 'neige'
+        retour_thread['fetching_animation_text'] = None
         retour_thread['thread_en_cours'] = False
         return True
 
@@ -808,7 +810,8 @@ def render_snowing():
         for snowflake in snowflake_list:
             if snowflake['pos_y'] > hauteur:
                 snowflake_list.remove(snowflake)
-        snowflake_list.append(get_snowflake())
+        if retour_thread['weather_animation']:
+            snowflake_list.append(get_snowflake())
 
     snowflake_radius = int(7 * size_mult)
 
@@ -860,7 +863,7 @@ def render_raining(freezing=False, drizzle=False):
 if ClockSettings.DEBUG_MODE:
     print("Debugging mode enabled")
 
-status_loading_text = "Pygame"
+status_loading_text = "Pygame: 2/2"
 
 if ClockSettings.ENABLE_LOADING_ANIMATION:
     loading_master.withdraw()
@@ -902,8 +905,6 @@ loading_master.destroy()
 
 surface = pygame.Surface(resolution)
 
-maintenant = datetime.datetime.now()
-
 lift_loading_master = True
 
 couleur_fond = ClockSettings.BACKGROUND_COLOR
@@ -922,9 +923,9 @@ shuffle_images = True
 if len(images_filenames) < 2:
     shuffle_images = False
 
-if len(images_filenames) > 0:
+if len(images_filenames):
     for index in range(0, len(images_filenames)):
-        status_loading_text = 'Images (' + str(index + 1) + '/' + str(len(images_filenames)) + ')'
+        status_loading_text = 'Images: ' + str(index + 1) + '/' + str(len(images_filenames))
 
         temp_image = pygame.image.load(os.path.join(clock_files_folder, images_filenames[index]))
         spinning_images.append(pygame.transform.scale(temp_image, (int(100 * size_mult), int(100 * size_mult))))
@@ -937,7 +938,6 @@ if len(images_filenames) > 0:
 # -----------------------------------LOADING LOOP IMAGES---------------------------------- #
 if AnimationLoopSettings.ENABLED:
     loop_time = 0
-    loop_end_time = maintenant
     loop_center_x = int(largeur * (AnimationLoopSettings.CENTER_X_PERCENT / 100.0))
     loop_center_y = int(hauteur * (AnimationLoopSettings.CENTER_Y_PERCENT / 100.0))
 
@@ -948,7 +948,7 @@ if AnimationLoopSettings.ENABLED:
     loop_images = []
 
     for index in range(0, len(images_filenames)):
-        status_loading_text = 'Images d\'animation (' + str(index + 1) + '/' + str(len(images_filenames)) + ')'
+        status_loading_text = 'Images d\'animation: ' + str(index + 1) + '/' + str(len(images_filenames))
 
         temp_image = pygame.image.load(os.path.join(loop_directory, images_filenames[index]))
         temp_image = pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult)
@@ -970,13 +970,16 @@ images_filenames.sort()
 weather_icons = {}
 
 for index in range(0, len(images_filenames)):
-    status_loading_text = 'Icônes de météo (' + str(index + 1) + '/' + str(len(images_filenames)) + ')'
+    status_loading_text = 'Icônes de météo: ' + str(index + 1) + '/' + str(len(images_filenames))
 
     temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
     weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
 # ---------------------------------------------------------------------------------------- #
 
 status_loading_text = "Touches finales"
+
+import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, sys, re
+from random import randint, uniform
 
 pygame.font.init()
 
@@ -988,6 +991,8 @@ font_17 = pygame.font.Font(font_path, int(17 * font_ratio * size_mult))
 font_25 = pygame.font.Font(font_path, int(25 * font_ratio * size_mult))
 font_40 = pygame.font.Font(font_path, int(40 * font_ratio * size_mult))
 font_100 = pygame.font.Font(font_path, int(100 * font_ratio * size_mult))
+
+font_list = {'17': font_17, '25': font_25, '40': font_40, '100': font_100}
 
 # ------------------------------------------MENU------------------------------------------ #
 
@@ -1101,6 +1106,10 @@ button_back_rect.centerx = texte_rect.centerx + menu_rect.left
 menu_anim = {'active': False, 'is_opening': False, 'percent_status': 0}
 
 # ---------------------------------------------------------------------------------------- #
+
+maintenant = datetime.datetime.now()
+
+loop_end_time = maintenant
 
 heure = maintenant.hour
 
@@ -1295,6 +1304,13 @@ text_anim_frames = ["[.oOo.]", "[..oOo]", "[o..oO]", "[Oo..o]", "[oOo..]"]
 # text_anim_frames = ["[-=-  ]", "[ -=- ]", "[  -=-]", "[-  -=]", "[=-  -]"]
 # text_anim_frames = ["[do]", "[ob]", "[op]", "[qo]"]
 
+text_anim_surfaces = {}
+
+for font in font_list.keys():
+    text_anim_surfaces[font] = []
+    for text_anim in text_anim_frames:
+        text_anim_surfaces[font].append(font_list[font].render(text_anim, True, couleur_fond_inverse))
+
 text_anim_frame = 0
 
 duree_last_frame = 0
@@ -1340,7 +1356,7 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 
 pygame.display.update()
 
-peek_surface.set_colorkey([100, 50, 0])  # Ici pour aider les update/blit à être plus rapides au bot
+peek_surface.set_colorkey([100, 50, 0])  # Ici pour aider les update/blit à être plus rapides au boot
 
 get_forecast_too = True
 
@@ -1700,9 +1716,13 @@ while en_fonction:
 
     if (retour_thread['temperature'][0] or text_anim_frames[text_anim_frame]) != text_dict['temperature']['text']:
         text_dict['temperature']['text'] = retour_thread['temperature'][0] or text_anim_frames[text_anim_frame]
-        text_dict['temperature']['surface'] = font_25.render(
-            retour_thread['temperature'][0] or text_anim_frames[text_anim_frame], True,
-            retour_thread['temperature'][1]['couleur'])
+
+        if retour_thread['temperature'][0]:
+            text_dict['temperature']['surface'] = font_25.render(text_dict['temperature']['text'], True,
+                                                                 retour_thread['temperature'][1]['couleur'])
+        else:
+            text_dict['temperature']['surface'] = text_anim_surfaces['25'][text_anim_frame]
+
         text_dict['temperature']['rect'] = text_dict['temperature']['surface'].get_rect()
         texte_bottom = text_dict['detailed_info']['rect'].bottom
         text_dict['temperature']['rect'].top = texte_bottom
@@ -1725,8 +1745,13 @@ while en_fonction:
 
     if (retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]) != text_dict['pourcent_pluie']['text']:
         text_dict['pourcent_pluie']['text'] = retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]
-        text_dict['pourcent_pluie']['surface'] = font_17.render(
-            retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
+
+        if retour_thread['pourcent_pluie']:
+            text_dict['pourcent_pluie']['surface'] = font_17.render(text_dict['pourcent_pluie']['text'], True,
+                                                                    couleur_fond_inverse)
+        else:
+            text_dict['pourcent_pluie']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+
         text_dict['pourcent_pluie']['rect'] = text_dict['pourcent_pluie']['surface'].get_rect(
             center=(text_dict['temperature']['rect'].center[0], 0))
         text_dict['pourcent_pluie']['rect'].top = text_dict['temperature']['rect'].bottom
@@ -1737,8 +1762,13 @@ while en_fonction:
         if (retour_thread['ethermine_data'] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][
             'text']:
             text_dict['ethermine_data']['text'] = retour_thread['ethermine_data'] or text_anim_frames[text_anim_frame]
-            text_dict['ethermine_data']['surface'] = font_17.render(text_dict['ethermine_data']['text'], True,
-                                                                    couleur_fond_inverse)
+
+            if retour_thread['ethermine_data']:
+                text_dict['ethermine_data']['surface'] = font_17.render(text_dict['ethermine_data']['text'], True,
+                                                                        couleur_fond_inverse)
+            else:
+                text_dict['ethermine_data']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+
             text_dict['ethermine_data']['rect'] = text_dict['ethermine_data']['surface'].get_rect()
             text_dict['ethermine_data']['rect'].bottom = hauteur
             text_dict['ethermine_data']['rect'].left = int(2 * size_mult)
@@ -1746,8 +1776,13 @@ while en_fonction:
 
     if (retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_ethereum']['text']:
         text_dict['valeur_ethereum']['text'] = retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]
-        text_dict['valeur_ethereum']['surface'] = font_17.render(text_dict['valeur_ethereum']['text'], True,
-                                                                 couleur_fond_inverse)
+
+        if retour_thread['valeur_ethereum']:
+            text_dict['valeur_ethereum']['surface'] = font_17.render(text_dict['valeur_ethereum']['text'], True,
+                                                                     couleur_fond_inverse)
+        else:
+            text_dict['valeur_ethereum']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+
         text_dict['valeur_ethereum']['rect'] = text_dict['valeur_ethereum']['surface'].get_rect()
         if ClockSettings.SHOW_MINING_INFO:
             text_dict['valeur_ethereum']['rect'] = text_dict['valeur_ethereum']['surface'].get_rect(
@@ -1766,8 +1801,13 @@ while en_fonction:
 
     if (retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_bitcoin']['text']:
         text_dict['valeur_bitcoin']['text'] = retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]
-        text_dict['valeur_bitcoin']['surface'] = font_17.render(text_dict['valeur_bitcoin']['text'], True,
-                                                                couleur_fond_inverse)
+
+        if retour_thread['valeur_bitcoin']:
+            text_dict['valeur_bitcoin']['surface'] = font_17.render(text_dict['valeur_bitcoin']['text'], True,
+                                                                    couleur_fond_inverse)
+        else:
+            text_dict['valeur_bitcoin']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+
         text_dict['valeur_bitcoin']['rect'] = text_dict['valeur_bitcoin']['surface'].get_rect()
         texte_top = text_dict['ETH']['rect'].top - (2 * size_mult)
         text_dict['valeur_bitcoin']['rect'].left = int(2 * size_mult)
@@ -1782,8 +1822,13 @@ while en_fonction:
     if ClockSettings.FETCH_RELAIS_DATA:
         if (retour_thread['pistes_soir'] or text_anim_frames[text_anim_frame]) != text_dict['pistes_soir']['text']:
             text_dict['pistes_soir']['text'] = retour_thread['pistes_soir'] or text_anim_frames[text_anim_frame]
-            text_dict['pistes_soir']['surface'] = font_17.render(text_dict['pistes_soir']['text'], True,
-                                                                 couleur_fond_inverse)
+
+            if retour_thread['pistes_soir']:
+                text_dict['pistes_soir']['surface'] = font_17.render(text_dict['pistes_soir']['text'], True,
+                                                                     couleur_fond_inverse)
+            else:
+                text_dict['pistes_soir']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+
             text_dict['pistes_soir']['rect'] = text_dict['pistes_soir']['surface'].get_rect()
             text_dict['pistes_soir']['rect'].left = int(2 * size_mult)
             text_dict['pistes_soir']['rect'].bottom = text_dict['BTC']['rect'].top - int(2 * size_mult)
@@ -1797,8 +1842,13 @@ while en_fonction:
             text_dict['fetching_animation']['text']:
         text_dict['fetching_animation']['text'] = retour_thread['fetching_animation_text'] or text_anim_frames[
             text_anim_frame]
-        text_dict['fetching_animation']['surface'] = font_17.render(
-            retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame], True, couleur_fond_inverse)
+
+        if retour_thread['fetching_animation_text']:
+            text_dict['fetching_animation']['surface'] = font_17.render(text_dict['fetching_animation']['text'], True,
+                                                                        couleur_fond_inverse)
+        else:
+            text_dict['fetching_animation']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+
         text_dict['fetching_animation']['rect'] = text_dict['fetching_animation']['surface'].get_rect()
         text_dict['fetching_animation']['rect'].left = int(2 * size_mult)
         if ClockSettings.FETCH_RELAIS_DATA:
@@ -1842,7 +1892,7 @@ while en_fonction:
     if ClockSettings.ENABLE_COUNTDOWN_TIMER:
         if changement_seconde or first_frame:
             # Countdown normal
-            temps_restant = datetime.datetime(2022, 12, 16, 16, 00) - maintenant
+            temps_restant = datetime.datetime(2023, 4, 21, 7, 0) - maintenant
             # Fin de journée
             # temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 
@@ -1868,15 +1918,15 @@ while en_fonction:
             text_dict['temps_restant']['rect'].bottom = hauteur
         ecran.blit(text_dict['temps_restant']['surface'], text_dict['temps_restant']['rect'])
 
+        # if changement_seconde or first_frame:
         # Disco
         # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
         # Smooth
-        # couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
+        couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
         # Noel (vert/rouge)
-        if changement_seconde or first_frame:
-            couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
+        # couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
 
-        titre_countdown = 'Noël :D'
+        titre_countdown = 'UNION Zine'
 
         if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != \
                 text_dict['titre_countdown']['color']:
@@ -1909,8 +1959,9 @@ while en_fonction:
 
         render_loop_image()
 
-    if retour_thread['weather_animation']:
-        if retour_thread['weather_animation'] == 'neige' or retour_thread['weather_animation'] == 'poudre':
+    if retour_thread['weather_animation'] or len(snowflake_list):
+        if retour_thread['weather_animation'] == 'neige' or retour_thread['weather_animation'] == 'poudre' or len(
+                snowflake_list):
             render_snowing()
         elif retour_thread['weather_animation'] == 'vergla':
             render_raining(freezing=True)
