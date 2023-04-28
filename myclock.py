@@ -15,10 +15,10 @@ class ClockSettings(object):
 
 
 class DisplaySettings(object):
-    SCREEN_WIDTH = 1024
-    SCREEN_HEIGHT = 600
+    SCREEN_WIDTH = 512
+    SCREEN_HEIGHT = 384
     FULLSCREEN = False
-    AUTOMATIC_RESOLUTION = False
+    AUTOMATIC_RESOLUTION = True
     BORDERLESS_WINDOW = True
     X_POS = '0'
     Y_POS = '0'
@@ -32,6 +32,10 @@ class AnimationLoopSettings(object):
     # Pour la position, le chiffre est un pourcentage de l'ecran
     CENTER_X_PERCENT = 94.0
     CENTER_Y_PERCENT = 50.0
+
+
+class WeatherSettings(object):
+    RAINDROP_AMOUNT = 20
 
 
 # -------------------------------------LOADING SCREEN------------------------------------- #
@@ -150,7 +154,18 @@ def show_peek_loading_screen(largeur, hauteur):
                                      outline=background,
                                      width=int(5 * size_mult))
     circle_list = [circle_time, circle_hours, circle_mins, circle_secs, circle_secs]
+    peek_progress_background = canvas.create_rectangle(0,
+                                                       hauteur - peek_progress_height,
+                                                       hauteur,
+                                                       hauteur,
+                                                       fill='black')
+    peek_progress = canvas.create_rectangle(0,
+                                            hauteur - peek_progress_height,
+                                            int((hauteur * loading_progress_status) / 100),
+                                            hauteur,
+                                            fill='#404040')
     loading_master.update()
+    last_loading_progress_status = 0
     duree_frame = 0
     color_strength = 0.0
     color_strength_limit = 40.0
@@ -161,7 +176,7 @@ def show_peek_loading_screen(largeur, hauteur):
 
         color_strength = color_strength + duree_frame * (200 if first_loop else 100)
 
-        if color_strength >= color_strength_limit:
+        if color_strength > color_strength_limit:
             color_strength = color_strength_limit
 
         color_strength_reversed = 59.0 - (color_strength if color_strength >= 19 else 19.0)
@@ -175,6 +190,24 @@ def show_peek_loading_screen(largeur, hauteur):
             canvas.itemconfigure(circle_list[active_circle - 1],
                                  fill='#' + color_string_reversed + color_string_reversed + color_string_reversed)
 
+        if last_loading_progress_status != loading_progress_status:
+            if first_loop and last_loading_progress_status == 0:
+                canvas.itemconfigure(peek_progress_background, fill='#191919')
+
+            last_loading_progress_status = loading_progress_status
+            canvas.coords(peek_progress,
+                          0,
+                          hauteur - peek_progress_height,
+                          int((hauteur * last_loading_progress_status) / 100),
+                          hauteur)
+
+        if first_loop and last_loading_progress_status == 0:
+            if active_circle == 1:
+                canvas.itemconfigure(peek_progress_background, fill='#' + color_string + color_string + color_string)
+            elif active_circle == 2:
+                canvas.itemconfigure(peek_progress_background,
+                                     fill='#' + color_string_reversed + color_string_reversed + color_string_reversed)
+
         loading_master.update()
 
         if color_strength == color_strength_limit:
@@ -183,19 +216,21 @@ def show_peek_loading_screen(largeur, hauteur):
                 active_circle = 0
                 first_loop = False
                 debut_frame = time.time()
-                time.sleep(0.2)
                 wait_for_peek_animation = False
                 loading_master.lift()
-                for it in range(8):
-                    duree_frame = (time.time() - debut_frame)
+                while time.time() - debut_frame < 1:
+                    if last_loading_progress_status != loading_progress_status:
+                        last_loading_progress_status = loading_progress_status
+                        canvas.coords(peek_progress,
+                                      0,
+                                      hauteur - peek_progress_height,
+                                      int((hauteur * last_loading_progress_status) / 100),
+                                      hauteur)
+                        loading_master.update()
+                    elif 1 - duree_frame >= 0.01:
+                        time.sleep(0.01)
 
-                    if 1 - duree_frame >= 0.1:
-                        time.sleep(0.1)
-                    elif 1 - duree_frame > 0:
-                        time.sleep(1 - duree_frame)
-                        break
-
-                    if startup_complete:
+                    if startup_complete and time.time() - debut_frame >= 0.2:
                         break
 
                 if wait_for_peek_animation and not startup_complete:
@@ -237,6 +272,7 @@ os.environ['SDL_VIDEO_WINDOW_POS'] = DisplaySettings.X_POS + ',' + DisplaySettin
 status_loading_text = "Pygame: 1/2"
 startup_complete = False
 lift_loading_master = False
+loading_progress_status = 0
 wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION == 'peek' and ClockSettings.ENABLE_LOADING_ANIMATION
 
 loading_master = tk.Tk()
@@ -256,6 +292,8 @@ else:
     size_mult = hauteur / 480.0
 
 resolution = int(largeur), int(hauteur)
+
+peek_progress_height = 3 if int(2 * size_mult) < 3 else int(2 * size_mult)
 
 # Juste le texte pour afficher le plus rapidement possible
 loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
@@ -294,6 +332,19 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 os.system('cls' if os.name == 'nt' else 'clear')
 print("Initializing...")
 
+if ClockSettings.DEBUG_LOADING_ANIMATION:
+    time.sleep(1)
+    loading_progress_status = 25
+    time.sleep(1)
+    loading_progress_status = 50
+    time.sleep(1)
+    loading_progress_status = 75
+    time.sleep(1)
+    loading_progress_status = 100
+    time.sleep(1)
+    startup_complete = True
+    exit()
+
 import sys
 
 old_stdout = sys.stdout
@@ -303,10 +354,7 @@ import pygame
 
 sys.stdout = old_stdout
 
-if ClockSettings.DEBUG_LOADING_ANIMATION:
-    time.sleep(3)
-    startup_complete = True
-    exit()
+loading_progress_status = 15
 
 
 def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
@@ -325,7 +373,7 @@ def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
 def get_data(retour_thread, get_forecast=False):
     if ClockSettings.DEBUG_MODE:
         print("SKIPPING REQUESTS FOR DEBUG")
-        retour_thread['weather_animation'] = 'neige'
+        retour_thread['weather_animation'] = 'pluie'
         retour_thread['fetching_animation_text'] = None
         retour_thread['thread_en_cours'] = False
         return True
@@ -792,15 +840,26 @@ def get_snowflake():
             'weight': uniform(0.5, 1.0)}
 
 
-def get_raindrop():
+def get_raindrop(freezing, drizzle):
     vit_y = uniform(hauteur / 1.5, hauteur * 1.5)
+
+    if freezing:
+        surface = raindrop_freezing_surface
+    elif drizzle:
+        surface = raindrop_drizzle_surface
+    else:
+        surface = raindrop_normal_surface
+
     if ClockSettings.LOW_FRAMERATE_MODE:
         vit_y = vit_y * 0.5
 
     return {'pos_y': int(-randint(10, 50) * size_mult),
             'pos_x': randint(-largeur // 4, largeur),
             'vit_y': vit_y,
-            'vit_x': vit_y // 3}
+            'vit_x': vit_y // 3,
+            'surface': surface,
+            'width': surface.get_rect().width,
+            'height': surface.get_rect().height}
 
 
 def render_snowing():
@@ -837,26 +896,21 @@ def render_snowing():
 
 
 def render_raining(freezing=False, drizzle=False):
-    if len(raindrop_list) < 20:
-        for it in range(0, 20 - len(raindrop_list)):
-            raindrop_list.append(get_raindrop())
+    if len(raindrop_list) < WeatherSettings.RAINDROP_AMOUNT:
+        for it in range(0, WeatherSettings.RAINDROP_AMOUNT - len(raindrop_list)):
+            raindrop_list.append(get_raindrop(freezing, drizzle))
     else:
         for drop in raindrop_list:
             if drop['pos_y'] > hauteur or drop['pos_x'] > largeur:
                 raindrop_list.remove(drop)
-
-    drop_angle = int((2 if drizzle else 4) * size_mult)
-    drop_length = int((8 if drizzle else 15) * size_mult)
-    drop_thicc = int((1 if drizzle else 3) * size_mult)
-    drop_color = [0, 200, 255] if freezing else [0, 0, 255]
 
     for drop in raindrop_list:
         if not changement_heure:
             drop['pos_y'] += drop['vit_y'] * duree_last_frame
             drop['pos_x'] += drop['vit_x'] * duree_last_frame
 
-        pygame.draw.line(ecran, drop_color, [int(drop['pos_x']), int(drop['pos_y'])],
-                         [int(drop['pos_x'] + drop_angle), int(drop['pos_y'] + drop_length)], drop_thicc)
+        if drop['pos_x'] + drop['width'] >= 0 and drop['pos_y'] + drop['height'] >= 0:
+            ecran.blit(drop['surface'], [drop['pos_x'], drop['pos_y']])
 
 
 # START
@@ -882,6 +936,11 @@ pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(12
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
 
+if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION == 'peek':
+    pygame.draw.rect(peek_surface, [64, 64, 64], [int(largeur/2 - hauteur/2) + 1, hauteur - peek_progress_height + 1, hauteur - 1, peek_progress_height - 1])
+
+loading_progress_status = 20
+
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
     if DisplaySettings.FULLSCREEN:
         ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
@@ -900,6 +959,8 @@ if not ClockSettings.ENABLE_LOADING_ANIMATION:
 else:
     ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
     lift_loading_master = True
+
+loading_progress_status = 50
 
 loading_master.destroy()
 
@@ -935,6 +996,7 @@ if len(images_filenames):
 
     spinning_image = spinning_images[0]
 # ---------------------------------------------------------------------------------------- #
+next_section_loading_amount = 30
 # -----------------------------------LOADING LOOP IMAGES---------------------------------- #
 if AnimationLoopSettings.ENABLED:
     loop_time = 0
@@ -956,12 +1018,15 @@ if AnimationLoopSettings.ENABLED:
         temp_surface.fill(couleur_fond)
         temp_surface.blit(temp_image, [0, 0])
         loop_images.append(temp_surface.convert())
+        loading_progress_status += next_section_loading_amount / len(images_filenames)
 
     temp_surface = None
     temp_image = None
     loop_images_len = len(loop_images)
     loop_time = loop_images_len / AnimationLoopSettings.FPS
 # ---------------------------------------------------------------------------------------- #
+loading_progress_status = 80
+next_section_loading_amount = 10
 # -----------------------------------LOADING WEATHER ICONS---------------------------------- #
 weather_directory = os.path.join(clock_files_folder, 'weather_icons')
 images_filenames = os.listdir(weather_directory)
@@ -974,12 +1039,16 @@ for index in range(0, len(images_filenames)):
 
     temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
     weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
+    loading_progress_status += next_section_loading_amount / len(images_filenames)
 # ---------------------------------------------------------------------------------------- #
 
+loading_progress_status = 90
 status_loading_text = "Touches finales"
 
 import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, sys, re
 from random import randint, uniform
+
+loading_progress_status = 95
 
 pygame.font.init()
 
@@ -993,6 +1062,8 @@ font_40 = pygame.font.Font(font_path, int(40 * font_ratio * size_mult))
 font_100 = pygame.font.Font(font_path, int(100 * font_ratio * size_mult))
 
 font_list = {'17': font_17, '25': font_25, '40': font_40, '100': font_100}
+
+loading_progress_status = 98
 
 # ------------------------------------------MENU------------------------------------------ #
 
@@ -1182,6 +1253,7 @@ toggle_menu = False
 is_raspi2fb_active = False
 
 draw_middle_circle = True
+refresh_requested = False
 first_frame = True
 frame_counter = 0
 
@@ -1321,6 +1393,33 @@ snowflake_list = []
 
 raindrop_list = []
 
+# Normal raindrops (pluie)
+drop_angle = int(4 * size_mult)
+drop_thicc = int(3 * size_mult)
+drop_length = int(15 * size_mult)
+drop_color = [0, 0, 255]
+raindrop_normal_surface = pygame.Surface([drop_angle + drop_thicc, drop_length + 1])
+raindrop_normal_surface.set_colorkey([0, 0, 0])
+pygame.draw.line(raindrop_normal_surface, drop_color, [int(drop_thicc / 2), 0],
+                 [drop_angle + int(drop_thicc / 2), drop_length], drop_thicc)
+
+# Freezing raindrops (vergla)
+drop_color = [0, 200, 255]
+raindrop_freezing_surface = pygame.Surface([drop_angle + drop_thicc, drop_length + 1])
+raindrop_freezing_surface.set_colorkey([0, 0, 0])
+pygame.draw.line(raindrop_freezing_surface, drop_color, [int(drop_thicc / 2), 0],
+                 [drop_angle + int(drop_thicc / 2), drop_length], drop_thicc)
+
+# Drizzle raindrops (bruine)
+drop_angle = int(2 * size_mult)
+drop_thicc = int(1 * size_mult)
+drop_length = int(8 * size_mult)
+drop_color = [0, 0, 255]
+raindrop_drizzle_surface = pygame.Surface([drop_angle + drop_thicc, drop_length + 1])
+raindrop_drizzle_surface.set_colorkey([0, 0, 0])
+pygame.draw.line(raindrop_drizzle_surface, drop_color, [int(drop_thicc / 2), 0],
+                 [drop_angle + int(drop_thicc / 2), drop_length], drop_thicc)
+
 notification_active = False
 
 notifications = {"11:55": ["À LA", "BOUFFE"],
@@ -1332,6 +1431,8 @@ peek_animating = False
 peek_radius = 0
 peek_radius_limit = math.sqrt(hauteur ** 2 + largeur ** 2) / 2
 peek_status = 0
+
+loading_progress_status = 100
 
 while wait_for_peek_animation:
     time.sleep(0.05)
@@ -1408,7 +1509,7 @@ while en_fonction:
                         en_fonction = False
                     elif button_refresh_rect.collidepoint(position_souris):
                         # rafraîchir
-                        draw_middle_circle = True
+                        refresh_requested = True
                         toggle_menu = False
                         pygame.mouse.set_visible(False)
                         retour_thread['geolocate_success'] = False
@@ -1684,6 +1785,10 @@ while en_fonction:
                         rect_arc_secondes, math.radians(70 - degree_secondes),
                         math.radians(74 - degree_secondes), int(34 * size_mult))
 
+    if refresh_requested:
+        draw_middle_circle = True
+        refresh_requested = False
+
     ecran.blit(surface, [0, 0])
 
     if retour_thread['thread_en_cours'] or ClockSettings.DEBUG_MODE:
@@ -1892,7 +1997,7 @@ while en_fonction:
     if ClockSettings.ENABLE_COUNTDOWN_TIMER:
         if changement_seconde or first_frame:
             # Countdown normal
-            temps_restant = datetime.datetime(2023, 4, 21, 7, 0) - maintenant
+            temps_restant = datetime.datetime(2023, 5, 12, 7, 0) - maintenant
             # Fin de journée
             # temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 
@@ -1926,7 +2031,7 @@ while en_fonction:
         # Noel (vert/rouge)
         # couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
 
-        titre_countdown = 'UNION Zine'
+        titre_countdown = 'TOTK'
 
         if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != \
                 text_dict['titre_countdown']['color']:
