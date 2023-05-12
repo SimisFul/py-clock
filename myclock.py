@@ -2,13 +2,13 @@
 
 class ClockSettings(object):
     ENABLE_COUNTDOWN_TIMER = True
-    DEBUG_MODE = False
+    DEBUG_MODE = True
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
     LOW_FRAMERATE_MODE = False
     FONT = "moonget-fixed.ttf"
     ENABLE_LOADING_ANIMATION = True
-    LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek
+    LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek, peek_lite
     DEBUG_LOADING_ANIMATION = False
     FETCH_RELAIS_DATA = False
     SHOW_MINING_INFO = True
@@ -18,7 +18,7 @@ class DisplaySettings(object):
     SCREEN_WIDTH = 512
     SCREEN_HEIGHT = 384
     FULLSCREEN = False
-    AUTOMATIC_RESOLUTION = True
+    AUTOMATIC_RESOLUTION = False
     BORDERLESS_WINDOW = True
     X_POS = '0'
     Y_POS = '0'
@@ -112,6 +112,9 @@ def show_progress_loading_screen(largeur, hauteur):
 def show_peek_loading_screen(largeur, hauteur):
     global lift_loading_master
     global wait_for_peek_animation
+    global loading_start_time
+
+    lite_mode = ClockSettings.LOADING_ANIMATION_SELECTION == 'peek_lite'
 
     loading_master = tk.Tk()
 
@@ -158,96 +161,144 @@ def show_peek_loading_screen(largeur, hauteur):
                                                        hauteur - peek_progress_height,
                                                        hauteur,
                                                        hauteur,
-                                                       fill='black')
+                                                       fill='#191919' if lite_mode else 'black',
+                                                       outline='')
     peek_progress = canvas.create_rectangle(0,
                                             hauteur - peek_progress_height,
                                             int((hauteur * loading_progress_status) / 100),
                                             hauteur,
-                                            fill='#404040')
+                                            fill='#404040',
+                                            outline='')
     loading_master.update()
     last_loading_progress_status = 0
+    smooth_progress_status = 0
+    progress_catchup_mode = False
     duree_frame = 0
     color_strength = 0.0
+    color_strength_lowest = 19.0
     color_strength_limit = 40.0
     active_circle = 0
     first_loop = True
+    animation_paused = False
+    pause_start = time.time()
     while not startup_complete:
         debut_frame = time.time()
 
-        color_strength = color_strength + duree_frame * (200 if first_loop else 100)
+        if lite_mode and not first_loop:
+            wait_for_peek_animation = False
 
-        if color_strength > color_strength_limit:
-            color_strength = color_strength_limit
+        if not animation_paused:
+            color_strength = color_strength + duree_frame * (200 if first_loop else 100)
 
-        color_strength_reversed = 59.0 - (color_strength if color_strength >= 19 else 19.0)
+            if color_strength > color_strength_limit:
+                color_strength = color_strength_limit
 
-        color_string = str(int(color_strength)).zfill(2)
-        color_string_reversed = str(int(color_strength_reversed)).zfill(2)
+            color_strength_reversed = (color_strength_limit + color_strength_lowest) - (color_strength if color_strength >= color_strength_lowest else color_strength_lowest)
 
-        canvas.itemconfigure(circle_list[active_circle], fill='#' + color_string + color_string + color_string)
+            color_string = str(int(color_strength)).zfill(2)
+            color_string = '#' + color_string + color_string + color_string
+            color_string_reversed = str(int(color_strength_reversed)).zfill(2)
+            color_string_reversed = '#' + color_string_reversed + color_string_reversed + color_string_reversed
 
-        if active_circle != 0:
-            canvas.itemconfigure(circle_list[active_circle - 1],
-                                 fill='#' + color_string_reversed + color_string_reversed + color_string_reversed)
+            if lite_mode:
+                if first_loop:
+                    if color_strength != color_strength_limit:
+                        color_strength = color_strength - duree_frame * 100
+                    else:
+                        canvas.itemconfigure(circle_list[active_circle], fill='#191919')
+            else:
+                canvas.itemconfigure(circle_list[active_circle], fill=color_string)
 
-        if last_loading_progress_status != loading_progress_status:
-            if first_loop and last_loading_progress_status == 0:
-                canvas.itemconfigure(peek_progress_background, fill='#191919')
+                if active_circle != 0:
+                    canvas.itemconfigure(circle_list[active_circle - 1],
+                                         fill=color_string_reversed)
 
-            last_loading_progress_status = loading_progress_status
+        if loading_progress_status <= loading_smooth_checkpoints[-1]:
+            if smooth_progress_status < loading_progress_status:
+                smooth_progress_status += (loading_progress_status - smooth_progress_status) * duree_frame
+            if smooth_progress_status < loading_smooth_checkpoints[loading_checkpoint]:
+                if loading_speed < loading_smooth_checkpoints[loading_checkpoint] - smooth_progress_status:
+                    smooth_progress_status += loading_speed * duree_frame
+                else:
+                    smooth_progress_status += (loading_smooth_checkpoints[
+                                                   loading_checkpoint] - smooth_progress_status) * duree_frame
+
+            # Wait for loading
+            if smooth_progress_status > loading_smooth_checkpoints[loading_checkpoint]:
+                smooth_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+        # Catch up with loading
+        else:
+            if smooth_progress_status < loading_progress_status and smooth_progress_status < loading_smooth_checkpoints[
+                -1] and not progress_catchup_mode:
+                progress_catchup_mode = True
+
+            if progress_catchup_mode:
+                smooth_progress_status += (100 - smooth_progress_status) * duree_frame
+
+                if smooth_progress_status >= loading_progress_status:
+                    progress_catchup_mode = False
+                    smooth_progress_status = loading_progress_status
+            else:
+                smooth_progress_status = loading_progress_status
+
+        if last_loading_progress_status != smooth_progress_status:
+            last_loading_progress_status = smooth_progress_status
             canvas.coords(peek_progress,
                           0,
                           hauteur - peek_progress_height,
                           int((hauteur * last_loading_progress_status) / 100),
                           hauteur)
 
-        if first_loop and last_loading_progress_status == 0:
-            if active_circle == 1:
-                canvas.itemconfigure(peek_progress_background, fill='#' + color_string + color_string + color_string)
-            elif active_circle == 2:
-                canvas.itemconfigure(peek_progress_background,
-                                     fill='#' + color_string_reversed + color_string_reversed + color_string_reversed)
+            if animation_paused:
+                loading_master.update()
+        elif animation_paused:
+            time.sleep(0.01)
 
-        loading_master.update()
+        if first_loop and not lite_mode:
+            if active_circle == 0:
+                if color_strength <= 19:
+                    canvas.itemconfigure(peek_progress_background, fill=color_string)
+                else:
+                    canvas.itemconfigure(peek_progress_background, fill='#191919')
+
+        if startup_complete and time.time() - pause_start >= 0.2:
+            break
+
+        if time.time() - pause_start >= 1 and animation_paused:
+            if wait_for_peek_animation:
+                # wait_for_peek_animation set to True by main thread, don't start another loop. Prevents animation from looping again on horrendously slow hardware
+                if ClockSettings.DEBUG_MODE:
+                    canvas.itemconfigure(circle_list[0], fill='#ff4d4d')
+                    loading_master.update()
+                while not startup_complete:
+                    time.sleep(0.05)
+                break
+            else:
+                wait_for_peek_animation = True
+                animation_paused = False
+
+        if not animation_paused:
+            loading_master.update()
 
         if color_strength == color_strength_limit:
             active_circle += 1
-            if active_circle == len(circle_list):
+            if active_circle == len(circle_list) and not animation_paused:
+                animation_paused = True
                 active_circle = 0
                 first_loop = False
-                debut_frame = time.time()
+                pause_start = time.time()
                 wait_for_peek_animation = False
                 loading_master.lift()
-                while time.time() - debut_frame < 1:
-                    if last_loading_progress_status != loading_progress_status:
-                        last_loading_progress_status = loading_progress_status
-                        canvas.coords(peek_progress,
-                                      0,
-                                      hauteur - peek_progress_height,
-                                      int((hauteur * last_loading_progress_status) / 100),
-                                      hauteur)
-                        loading_master.update()
-                    elif 1 - duree_frame >= 0.01:
-                        time.sleep(0.01)
-
-                    if startup_complete and time.time() - debut_frame >= 0.2:
-                        break
-
-                if wait_for_peek_animation and not startup_complete:
-                    # wait_for_peek_animation set to True by main thread, don't start another loop. Prevents animation from looping again on horrendously slow hardware
-                    if ClockSettings.DEBUG_MODE:
-                        canvas.itemconfigure(circle_list[0], fill='#ff4d4d')
-                        loading_master.update()
-                    while not startup_complete:
-                        time.sleep(0.05)
-                    break
-                else:
-                    wait_for_peek_animation = True
 
             color_strength = 0.0 if first_loop else 19.0
 
         duree_frame = (time.time() - debut_frame)
         duree_frame = 0.1 if duree_frame > 0.1 else duree_frame
+
+        if duree_frame > 5:
+            # Time probably changed, compensating
+            loading_start_time += duree_frame
+            pause_start += duree_frame
 
     loading_master.withdraw()
     lift_loading_master = False
@@ -273,7 +324,10 @@ status_loading_text = "Pygame: 1/2"
 startup_complete = False
 lift_loading_master = False
 loading_progress_status = 0
-wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION == 'peek' and ClockSettings.ENABLE_LOADING_ANIMATION
+loading_speed = 0
+loading_smooth_checkpoints = [25, 28, 68, 69, 70]
+loading_checkpoint = 0
+wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek') and ClockSettings.ENABLE_LOADING_ANIMATION
 
 loading_master = tk.Tk()
 
@@ -293,7 +347,7 @@ else:
 
 resolution = int(largeur), int(hauteur)
 
-peek_progress_height = 3 if int(2 * size_mult) < 3 else int(2 * size_mult)
+peek_progress_height = 2 if int(2 * size_mult) < 2 else int(2 * size_mult)
 
 # Juste le texte pour afficher le plus rapidement possible
 loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
@@ -323,14 +377,32 @@ loading_master.update()
 from threading import Thread
 import time
 
+loading_start_time = time.time()
+
 if ClockSettings.ENABLE_LOADING_ANIMATION:
     if ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
         Thread(target=show_progress_loading_screen, args=(largeur, hauteur), daemon=True).start()
-    elif ClockSettings.LOADING_ANIMATION_SELECTION == 'peek':
+    elif ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
         Thread(target=show_peek_loading_screen, args=(largeur, hauteur), daemon=True).start()
 
 os.system('cls' if os.name == 'nt' else 'clear')
 print("Initializing...")
+
+clock_files_folder = os.path.join(os.path.dirname(__file__), 'clock_files')
+
+if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
+    loading_speed_file_path = os.path.join(clock_files_folder, 'loading_speed.txt')
+
+    if os.path.exists(loading_speed_file_path):
+        try:
+            with open(loading_speed_file_path) as f:
+                loading_speed = float(f.read())
+
+            if loading_speed < 1:
+                loading_speed = 1
+        except Exception:
+            os.remove(loading_speed_file_path)
+            loading_speed = 2
 
 if ClockSettings.DEBUG_LOADING_ANIMATION:
     time.sleep(1)
@@ -354,7 +426,8 @@ import pygame
 
 sys.stdout = old_stdout
 
-loading_progress_status = 15
+loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+loading_checkpoint += 1
 
 
 def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
@@ -936,10 +1009,12 @@ pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(12
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
 
-if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION == 'peek':
-    pygame.draw.rect(peek_surface, [64, 64, 64], [int(largeur/2 - hauteur/2) + 1, hauteur - peek_progress_height + 1, hauteur - 1, peek_progress_height - 1])
+if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
+    pygame.draw.rect(peek_surface, [64, 64, 64],
+                     [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur, peek_progress_height])
 
-loading_progress_status = 20
+loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+loading_checkpoint += 1
 
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
     if DisplaySettings.FULLSCREEN:
@@ -960,7 +1035,9 @@ else:
     ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
     lift_loading_master = True
 
-loading_progress_status = 50
+status_loading_text = "Modules"
+loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+loading_checkpoint += 1
 
 loading_master.destroy()
 
@@ -972,8 +1049,36 @@ couleur_fond = ClockSettings.BACKGROUND_COLOR
 
 couleur_fond_inverse = [255 - couleur_fond[0], 255 - couleur_fond[1], 255 - couleur_fond[2]]
 
+import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, sys, re
+from random import randint, uniform
+
+loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+loading_checkpoint += 1
+
+pygame.font.init()
+
+font_path = os.path.join(clock_files_folder, ClockSettings.FONT)
+
+font_ratio = get_font_ratio(font_path)
+
+font_17 = pygame.font.Font(font_path, int(17 * font_ratio * size_mult))
+font_25 = pygame.font.Font(font_path, int(25 * font_ratio * size_mult))
+font_40 = pygame.font.Font(font_path, int(40 * font_ratio * size_mult))
+font_100 = pygame.font.Font(font_path, int(100 * font_ratio * size_mult))
+
+font_list = {'17': font_17, '25': font_25, '40': font_40, '100': font_100}
+
+loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+
+if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
+    try:
+        with open(loading_speed_file_path, "w") as f:
+            f.write(str(loading_smooth_checkpoints[-1] / (time.time() - loading_start_time)))
+    except Exception:
+        if os.path.exists(loading_speed_file_path):
+            os.remove(loading_speed_file_path)
+
 # --------------------------------LOADING SPINNING IMAGES--------------------------------- #
-clock_files_folder = os.path.join(os.path.dirname(__file__), 'clock_files')
 # images_filenames = ['bb0_vinyl_big.png', 'bb1_vinyl_big.png', 'mega_vinyl_big.png']
 # images_filenames = ['bb0_vinyl.png', 'bb1_vinyl.png', 'mega_vinyl.png']
 # images_filenames = ['cake.png', 'cake2.png', 'baloon.png']
@@ -996,7 +1101,8 @@ if len(images_filenames):
 
     spinning_image = spinning_images[0]
 # ---------------------------------------------------------------------------------------- #
-next_section_loading_amount = 30
+loading_progress_status = 70
+next_section_loading_amount = 25
 # -----------------------------------LOADING LOOP IMAGES---------------------------------- #
 if AnimationLoopSettings.ENABLED:
     loop_time = 0
@@ -1025,8 +1131,8 @@ if AnimationLoopSettings.ENABLED:
     loop_images_len = len(loop_images)
     loop_time = loop_images_len / AnimationLoopSettings.FPS
 # ---------------------------------------------------------------------------------------- #
-loading_progress_status = 80
-next_section_loading_amount = 10
+loading_progress_status = 95
+next_section_loading_amount = 5
 # -----------------------------------LOADING WEATHER ICONS---------------------------------- #
 weather_directory = os.path.join(clock_files_folder, 'weather_icons')
 images_filenames = os.listdir(weather_directory)
@@ -1041,29 +1147,7 @@ for index in range(0, len(images_filenames)):
     weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
     loading_progress_status += next_section_loading_amount / len(images_filenames)
 # ---------------------------------------------------------------------------------------- #
-
-loading_progress_status = 90
-status_loading_text = "Touches finales"
-
-import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, sys, re
-from random import randint, uniform
-
-loading_progress_status = 95
-
-pygame.font.init()
-
-font_path = os.path.join(clock_files_folder, ClockSettings.FONT)
-
-font_ratio = get_font_ratio(font_path)
-
-font_17 = pygame.font.Font(font_path, int(17 * font_ratio * size_mult))
-font_25 = pygame.font.Font(font_path, int(25 * font_ratio * size_mult))
-font_40 = pygame.font.Font(font_path, int(40 * font_ratio * size_mult))
-font_100 = pygame.font.Font(font_path, int(100 * font_ratio * size_mult))
-
-font_list = {'17': font_17, '25': font_25, '40': font_40, '100': font_100}
-
-loading_progress_status = 98
+loading_progress_status = 100
 
 # ------------------------------------------MENU------------------------------------------ #
 
@@ -1250,8 +1334,6 @@ changement_seconde = False
 
 toggle_menu = False
 
-is_raspi2fb_active = False
-
 draw_middle_circle = True
 refresh_requested = False
 first_frame = True
@@ -1432,8 +1514,6 @@ peek_radius = 0
 peek_radius_limit = math.sqrt(hauteur ** 2 + largeur ** 2) / 2
 peek_status = 0
 
-loading_progress_status = 100
-
 while wait_for_peek_animation:
     time.sleep(0.05)
 
@@ -1549,8 +1629,6 @@ while en_fonction:
         # A chaque minute
         changement_minute = True
         notification_active = temps in list(notifications.keys())
-        # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
-        text_jour_semaine_couleur = get_text_jour_semaine_couleur()
     else:
         changement_minute = False
 
@@ -1602,13 +1680,8 @@ while en_fonction:
     elif minute > 0 and not do_arc_cleanup:
         do_arc_cleanup = True
 
-    if is_raspi2fb_active:
-        if os.system("pidof raspi2fb") in (1, 256):
-            is_raspi2fb_active = False
-            draw_middle_circle = True
-        else:
-            time.sleep(1)
-            continue
+    if changement_minute:
+        text_jour_semaine_couleur = get_text_jour_semaine_couleur()
 
     if not meteo_update_recent and minute % 5 == 0:
         get_forecast_too = (minute % 20 == 5) or not retour_thread['geolocate_success']
