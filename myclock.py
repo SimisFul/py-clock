@@ -1,8 +1,8 @@
 # coding: utf-8
 
 class ClockSettings(object):
-    ENABLE_COUNTDOWN_TIMER = True
-    DEBUG_MODE = True
+    ENABLE_COUNTDOWN_TIMER = False
+    DEBUG_MODE = False
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
     LOW_FRAMERATE_MODE = False
@@ -18,7 +18,7 @@ class DisplaySettings(object):
     SCREEN_WIDTH = 512
     SCREEN_HEIGHT = 384
     FULLSCREEN = False
-    AUTOMATIC_RESOLUTION = False
+    AUTOMATIC_RESOLUTION = True
     BORDERLESS_WINDOW = True
     X_POS = '0'
     Y_POS = '0'
@@ -29,9 +29,21 @@ class AnimationLoopSettings(object):
     DIRECTORY = 'smug_dance'
     FPS = 60.0
     SCALE = 0.45
+    ANTIALIASING = True
     # Pour la position, le chiffre est un pourcentage de l'ecran
     CENTER_X_PERCENT = 94.0
     CENTER_Y_PERCENT = 50.0
+
+
+# class AnimationLoopSettings(object):
+# ENABLED = True
+# DIRECTORY = 'pride_flag'
+# FPS = 30.0
+# SCALE = 0.15
+# ANTIALIASING = True
+# # Pour la position, le chiffre est un pourcentage de l'ecran
+# CENTER_X_PERCENT = 93.1
+# CENTER_Y_PERCENT = 50.0
 
 
 class WeatherSettings(object):
@@ -124,7 +136,7 @@ def show_peek_loading_screen(largeur, hauteur):
     loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
     loading_master.config(cursor="none")
     loading_master["bg"] = "black"
-    loading_master.update()
+    #loading_master.update()
     canvas = tk.Canvas(loading_master, width=hauteur, height=hauteur, highlightthickness=0)
     background = 'black'
     canvas.configure(background=background)
@@ -169,7 +181,7 @@ def show_peek_loading_screen(largeur, hauteur):
                                             hauteur,
                                             fill='#404040',
                                             outline='')
-    loading_master.update()
+    #loading_master.update()
     last_loading_progress_status = 0
     smooth_progress_status = 0
     progress_catchup_mode = False
@@ -193,7 +205,8 @@ def show_peek_loading_screen(largeur, hauteur):
             if color_strength > color_strength_limit:
                 color_strength = color_strength_limit
 
-            color_strength_reversed = (color_strength_limit + color_strength_lowest) - (color_strength if color_strength >= color_strength_lowest else color_strength_lowest)
+            color_strength_reversed = (color_strength_limit + color_strength_lowest) - (
+                color_strength if color_strength >= color_strength_lowest else color_strength_lowest)
 
             color_string = str(int(color_strength)).zfill(2)
             color_string = '#' + color_string + color_string + color_string
@@ -313,6 +326,8 @@ print("The clock has started running!")
 import tkinter as tk
 import os
 
+clock_files_folder = os.path.join(os.path.dirname(__file__), 'clock_files')
+
 if os.name == "nt":
     from ctypes import windll
 
@@ -320,14 +335,25 @@ if os.name == "nt":
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = DisplaySettings.X_POS + ',' + DisplaySettings.Y_POS
 
+desktop_img = None
+
+try:
+    import mss
+    with mss.mss() as desktop_img:
+        desktop_img = desktop_img.grab(desktop_img.monitors[0])
+except Exception:
+    print('Screenshot failed!')
+    desktop_img = None
+
 status_loading_text = "Pygame: 1/2"
 startup_complete = False
 lift_loading_master = False
 loading_progress_status = 0
-loading_speed = 0
+loading_speed = 1
 loading_smooth_checkpoints = [25, 28, 68, 69, 70]
 loading_checkpoint = 0
-wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek') and ClockSettings.ENABLE_LOADING_ANIMATION
+wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION.startswith(
+    'peek') and ClockSettings.ENABLE_LOADING_ANIMATION
 
 loading_master = tk.Tk()
 
@@ -355,13 +381,14 @@ loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not Displa
 loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
 loading_master.config(cursor="none")
 loading_master["bg"] = "black"
-loading_master.update()
+#loading_master.update()
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
     loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white",
                              bg="black")
     loading_label.place(x=(largeur / 2),
                         y=(hauteur / 2),
                         anchor='center')
+    loading_master.update()
 elif ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
     loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white",
                              bg="black")
@@ -372,7 +399,7 @@ elif ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
                             bg="black")
     status_label.place(x=(largeur / 2), y=(hauteur / 2), anchor=tk.N)
 
-loading_master.update()
+    loading_master.update()
 
 from threading import Thread
 import time
@@ -387,8 +414,6 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 
 os.system('cls' if os.name == 'nt' else 'clear')
 print("Initializing...")
-
-clock_files_folder = os.path.join(os.path.dirname(__file__), 'clock_files')
 
 if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
     loading_speed_file_path = os.path.join(clock_files_folder, 'loading_speed.txt')
@@ -1078,6 +1103,16 @@ if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SE
         if os.path.exists(loading_speed_file_path):
             os.remove(loading_speed_file_path)
 
+
+if os.path.exists(os.path.join(clock_files_folder, 'exit_splash.png')):
+    desktop_img = pygame.image.load(os.path.join(clock_files_folder, 'exit_splash.png'))
+    desktop_img = pygame.transform.smoothscale(desktop_img.convert_alpha(), resolution)
+elif desktop_img:
+    desktop_img = pygame.image.fromstring(desktop_img.rgb, desktop_img.size, 'RGB').convert()
+else:
+    desktop_img = pygame.Surface(resolution)
+    desktop_img.fill([0, 0, 0])
+
 # --------------------------------LOADING SPINNING IMAGES--------------------------------- #
 # images_filenames = ['bb0_vinyl_big.png', 'bb1_vinyl_big.png', 'mega_vinyl_big.png']
 # images_filenames = ['bb0_vinyl.png', 'bb1_vinyl.png', 'mega_vinyl.png']
@@ -1102,7 +1137,7 @@ if len(images_filenames):
     spinning_image = spinning_images[0]
 # ---------------------------------------------------------------------------------------- #
 loading_progress_status = 70
-next_section_loading_amount = 25
+next_section_loading_amount = 27
 # -----------------------------------LOADING LOOP IMAGES---------------------------------- #
 if AnimationLoopSettings.ENABLED:
     loop_time = 0
@@ -1115,11 +1150,21 @@ if AnimationLoopSettings.ENABLED:
 
     loop_images = []
 
+    if AnimationLoopSettings.ANTIALIASING:
+        temp_image = pygame.image.load(os.path.join(loop_directory, images_filenames[0]))
+        image_size = (int(temp_image.get_rect().width * AnimationLoopSettings.SCALE * size_mult),
+                      int(temp_image.get_rect().height * AnimationLoopSettings.SCALE * size_mult))
+
     for index in range(0, len(images_filenames)):
         status_loading_text = 'Images d\'animation: ' + str(index + 1) + '/' + str(len(images_filenames))
 
         temp_image = pygame.image.load(os.path.join(loop_directory, images_filenames[index]))
-        temp_image = pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult)
+
+        if AnimationLoopSettings.ANTIALIASING:
+            temp_image = pygame.transform.smoothscale(temp_image.convert_alpha(), image_size)
+        else:
+            temp_image = pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult)
+
         temp_surface = pygame.Surface((temp_image.get_width(), temp_image.get_height()))
         temp_surface.fill(couleur_fond)
         temp_surface.blit(temp_image, [0, 0])
@@ -1131,8 +1176,8 @@ if AnimationLoopSettings.ENABLED:
     loop_images_len = len(loop_images)
     loop_time = loop_images_len / AnimationLoopSettings.FPS
 # ---------------------------------------------------------------------------------------- #
-loading_progress_status = 95
-next_section_loading_amount = 5
+loading_progress_status = 97
+next_section_loading_amount = 3
 # -----------------------------------LOADING WEATHER ICONS---------------------------------- #
 weather_directory = os.path.join(clock_files_folder, 'weather_icons')
 images_filenames = os.listdir(weather_directory)
@@ -1144,7 +1189,11 @@ for index in range(0, len(images_filenames)):
     status_loading_text = 'Icônes de météo: ' + str(index + 1) + '/' + str(len(images_filenames))
 
     temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
-    weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
+    # weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
+    image_size = (
+    int(temp_image.get_rect().width * 0.6 * size_mult), int(temp_image.get_rect().height * 0.6 * size_mult))
+    weather_icons[images_filenames[index]] = pygame.transform.smoothscale(temp_image.convert_alpha(),
+                                                                          image_size).convert_alpha()
     loading_progress_status += next_section_loading_amount / len(images_filenames)
 # ---------------------------------------------------------------------------------------- #
 loading_progress_status = 100
@@ -1301,20 +1350,20 @@ else:
     rect_arc_heures = [eloignement_heures, (hauteur // 2) - (largeur // 2) + eloignement_heures,
                        largeur - eloignement_heures * 2, largeur - eloignement_heures * 2]
 
-# liste_calculs_couleurs = [lambda seconde: [255, int((seconde / 10.0) * 255), 0],
-# lambda seconde: [255 - int((seconde / 10.0) * 255), 255, 0],
-# lambda seconde: [0, 255, int((seconde / 10.0) * 255)],
-# lambda seconde: [0, 255 - int((seconde / 10.0) * 255), 255],
-# lambda seconde: [int((seconde / 10.0) * 255), 0, 255],
-# lambda seconde: [255, 0, 255 - int((seconde / 10.0) * 255)]]
+liste_calculs_couleurs = [lambda seconde: [255, int((seconde / 10.0) * 255), 0],
+                          lambda seconde: [255 - int((seconde / 10.0) * 255), 255, 0],
+                          lambda seconde: [0, 255, int((seconde / 10.0) * 255)],
+                          lambda seconde: [0, 255 - int((seconde / 10.0) * 255), 255],
+                          lambda seconde: [int((seconde / 10.0) * 255), 0, 255],
+                          lambda seconde: [255, 0, 255 - int((seconde / 10.0) * 255)]]
 
-liste_calculs_couleurs = [lambda seconde: [0, 255, 255],
-                          lambda seconde: [int((seconde / 10.0) * 128), 255 - int((seconde / 10.0) * 255), 255],
-                          lambda seconde: [128, 0, 255],
-                          lambda seconde: [127 + int((seconde / 10.0) * 128), 0, 255 - int((seconde / 10.0) * 155)],
-                          lambda seconde: [255, 0, 100],
-                          lambda seconde: [255 - int((seconde / 10.0) * 255), int((seconde / 10.0) * 255),
-                                           100 + int((seconde / 10.0) * 155)]]
+# liste_calculs_couleurs = [lambda seconde: [0, 255, 255],
+# lambda seconde: [int((seconde / 10.0) * 128), 255 - int((seconde / 10.0) * 255), 255],
+# lambda seconde: [128, 0, 255],
+# lambda seconde: [127 + int((seconde / 10.0) * 128), 0, 255 - int((seconde / 10.0) * 155)],
+# lambda seconde: [255, 0, 100],
+# lambda seconde: [255 - int((seconde / 10.0) * 255), int((seconde / 10.0) * 255),
+# 100 + int((seconde / 10.0) * 155)]]
 
 en_fonction = True
 
@@ -1576,7 +1625,7 @@ while en_fonction:
                         # quitter
                         if ClockSettings.DEBUG_MODE:
                             exit()
-                        status_loading_text = "BYE"
+                        status_loading_text = ""
                         en_fonction = False
                     elif button_back_rect.collidepoint(position_souris):
                         # retour
@@ -1607,6 +1656,9 @@ while en_fonction:
 			size_mult = largeur/480.0
 			ecran = pygame.display.set_mode(resolution, pygame.RESIZABLE)
 			surface = pygame.Surface(resolution)"""
+
+    if not en_fonction:
+        break
 
     temps = time.strftime("%H:%M")
 
@@ -1873,8 +1925,8 @@ while en_fonction:
         text_dict['temps']['rect'] = text_dict['temps']['surface'].get_rect(center=((largeur // 2), (hauteur // 2)))
     ecran.blit(text_dict['temps']['surface'], text_dict['temps']['rect'])
 
-    if str(seconde) != text_dict['seconde']['text']:
-        text_dict['seconde']['text'] = str(seconde)
+    if seconde != text_dict['seconde']['text']:
+        text_dict['seconde']['text'] = seconde
         text_dict['seconde']['surface'] = font_25.render(' ' + str(seconde) + ' ', True, [255, 255, 255])
     text_dict['seconde']['rotated_surface'] = pygame.transform.rotozoom(text_dict['seconde']['surface'],
                                                                         -degree_secondes + (
@@ -2070,7 +2122,7 @@ while en_fonction:
     if ClockSettings.ENABLE_COUNTDOWN_TIMER:
         if changement_seconde or first_frame:
             # Countdown normal
-            temps_restant = datetime.datetime(2023, 5, 12, 7, 0) - maintenant
+            temps_restant = datetime.datetime(2023, 7, 1, 0, 0) - maintenant
             # Fin de journée
             # temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 
@@ -2090,7 +2142,8 @@ while en_fonction:
 
         if temps_restant != text_dict['temps_restant']['text']:
             text_dict['temps_restant']['text'] = temps_restant
-            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse)
+            # text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse)
+            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond)
             text_dict['temps_restant']['rect'] = text_dict['temps_restant']['surface'].get_rect()
             text_dict['temps_restant']['rect'].right = int(largeur - (2 * size_mult))
             text_dict['temps_restant']['rect'].bottom = hauteur
@@ -2100,11 +2153,12 @@ while en_fonction:
         # Disco
         # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
         # Smooth
-        couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
+        # couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
         # Noel (vert/rouge)
         # couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
 
-        titre_countdown = 'TOTK'
+        titre_countdown = '.'
+        couleur_titre_countdown = couleur_fond
 
         if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != \
                 text_dict['titre_countdown']['color']:
@@ -2119,10 +2173,10 @@ while en_fonction:
         ecran.blit(text_dict['titre_countdown']['surface'], text_dict['titre_countdown']['rect'])
 
     # End countdown timer
+
     if calculated_fps != text_dict['calculated_fps']['text']:
         text_dict['calculated_fps']['text'] = calculated_fps
-        text_dict['calculated_fps']['surface'] = font_17.render(calculated_fps, True, couleur_fond_inverse,
-                                                                couleur_fond)
+        text_dict['calculated_fps']['surface'] = font_17.render(calculated_fps, True, couleur_fond_inverse)
         texte_top = text_dict['titre_countdown']['rect'].top
         text_dict['calculated_fps']['rect'] = text_dict['calculated_fps']['surface'].get_rect()
         text_dict['calculated_fps']['rect'].right = int(largeur - (2 * size_mult))
@@ -2213,6 +2267,7 @@ while en_fonction:
         calculated_fps = '{} fps'.format(frame_counter)
         frame_counter = 0
 
+pygame.mouse.set_pos(largeur, hauteur)
 pygame.mouse.set_visible(False)
 peek_surface.blit(ecran, [0, 0])
 
@@ -2228,9 +2283,13 @@ peek_status = 0
 peek_radius = 0
 
 surface.fill([0, 0, 0])
-texte = font_100.render(status_loading_text, True, [255, 255, 255])
-texte_rect = texte.get_rect(center=(largeur // 2, hauteur // 2))
-surface.blit(texte, texte_rect)
+
+if not startup_complete:
+    texte = font_100.render(status_loading_text, True, [255, 255, 255])
+    texte_rect = texte.get_rect(center=(largeur // 2, hauteur // 2))
+    surface.blit(texte, texte_rect)
+elif DisplaySettings.AUTOMATIC_RESOLUTION and (DisplaySettings.FULLSCREEN or DisplaySettings.BORDERLESS_WINDOW):
+    surface.blit(desktop_img, [0, 0])
 
 while peek_radius <= peek_radius_limit:
     maintenant = datetime.datetime.now()
@@ -2238,19 +2297,20 @@ while peek_radius <= peek_radius_limit:
     peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
 
     peek_radius = int(peek_status * 250 * size_mult)
-    pygame.draw.circle(peek_surface, [128, 128, 128], [position_souris[0], position_souris[1]],
+    splash_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [position_souris[0], position_souris[1]],
                        peek_radius + int(5 * size_mult))
     pygame.draw.circle(peek_surface, [100, 50, 0], [position_souris[0], position_souris[1]], peek_radius)
 
-    ecran.blit(surface, [0, 0])
-    ecran.blit(peek_surface, [0, 0])
+    ecran.blit(surface, [splash_rect.left, splash_rect.top], splash_rect)
+    ecran.blit(peek_surface, [splash_rect.left, splash_rect.top], splash_rect)
 
     duree_last_frame = sleep_until_next_frame()
 
-time.sleep(1)
-
 # Reusing startup_complete since its only needed during startup
-if not startup_complete:
+if startup_complete:
+    os.system('sudo pkill -9 -f "python3 .*/myclock.py$"')
+else:
+    time.sleep(1)
     try:
         import RPi.GPIO as GPIO
 
