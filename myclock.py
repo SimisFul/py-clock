@@ -1,7 +1,7 @@
 # coding: utf-8
 
 class ClockSettings(object):
-    ENABLE_COUNTDOWN_TIMER = False
+    ENABLE_COUNTDOWN_TIMER = True
     DEBUG_MODE = False
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
@@ -15,10 +15,10 @@ class ClockSettings(object):
 
 
 class DisplaySettings(object):
-    SCREEN_WIDTH = 512
-    SCREEN_HEIGHT = 384
+    SCREEN_WIDTH = 800
+    SCREEN_HEIGHT = 480
     FULLSCREEN = False
-    AUTOMATIC_RESOLUTION = True
+    AUTOMATIC_RESOLUTION = False
     BORDERLESS_WINDOW = True
     X_POS = '0'
     Y_POS = '0'
@@ -28,22 +28,11 @@ class AnimationLoopSettings(object):
     ENABLED = True
     DIRECTORY = 'smug_dance'
     FPS = 60.0
-    SCALE = 0.45
+    SCALE = 0.6
     ANTIALIASING = True
     # Pour la position, le chiffre est un pourcentage de l'ecran
-    CENTER_X_PERCENT = 94.0
+    CENTER_X_PERCENT = 90.0
     CENTER_Y_PERCENT = 50.0
-
-
-# class AnimationLoopSettings(object):
-# ENABLED = True
-# DIRECTORY = 'pride_flag'
-# FPS = 30.0
-# SCALE = 0.15
-# ANTIALIASING = True
-# # Pour la position, le chiffre est un pourcentage de l'ecran
-# CENTER_X_PERCENT = 93.1
-# CENTER_Y_PERCENT = 50.0
 
 
 class WeatherSettings(object):
@@ -1011,6 +1000,33 @@ def render_raining(freezing=False, drizzle=False):
             ecran.blit(drop['surface'], [drop['pos_x'], drop['pos_y']])
 
 
+def draw_brightness_slider(brightness):
+    top_rect = pygame.draw.circle(menu_surface, [255, 255, 255] if brightness == 100 else [70, 70, 70], [int(menu_width * 0.15), int(menu_height // 4)], int(3 * size_mult))
+    bottom_rect = pygame.draw.circle(menu_surface, [255, 255, 255] if brightness else [70, 70, 70], [top_rect.centerx, int(menu_height // 1.4)], int(3 * size_mult))
+
+    slider_rect = pygame.draw.rect(menu_surface, [255, 255, 255], [top_rect.left, top_rect.centery, top_rect.width, bottom_rect.centery - top_rect.centery])
+    if brightness < 100:
+        pygame.draw.rect(menu_surface, [70, 70, 70], [top_rect.left, top_rect.centery, top_rect.width, slider_rect.height * (100 - brightness) / 100])
+
+    brightness_slider_rect = pygame.Rect([top_rect.left, top_rect.top, top_rect.width * 8, slider_rect.height])
+    brightness_slider_rect.centerx = top_rect.centerx + menu_rect.left
+    brightness_slider_rect.centery = slider_rect.centery
+
+    return brightness_slider_rect
+
+
+def change_brightness():
+    last_brightness_value = -1
+    value_to_insert = int((brightness / 100) * 230) + 25
+    try:
+        while last_brightness_value != value_to_insert:
+            os.system('echo ' + str(value_to_insert) + ' | sudo tee -a /sys/class/backlight/rpi_backlight/brightness')
+            with open('/sys/class/backlight/rpi_backlight/brightness') as f:
+                last_brightness_value = int(f.read())
+            value_to_insert = int((brightness / 100) * 230) + 25
+    except Exception:
+        pass
+
 # START
 if ClockSettings.DEBUG_MODE:
     print("Debugging mode enabled")
@@ -1029,6 +1045,8 @@ mouse_button_down_time = 0
 
 peek_surface = pygame.Surface(resolution)
 
+peek_rect = pygame.Rect([0, 0, 0, 0])
+peek_blit_list = []
 pygame.draw.circle(peek_surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(120.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
@@ -1093,6 +1111,18 @@ font_100 = pygame.font.Font(font_path, int(100 * font_ratio * size_mult))
 
 font_list = {'17': font_17, '25': font_25, '40': font_40, '100': font_100}
 
+brightness = 50
+
+try:
+    with open('/sys/class/backlight/rpi_backlight/brightness') as f:
+        brightness = int(f.read()) - 25
+        brightness = (brightness/230) * 100
+
+    if not (0 <= brightness <= 100):
+        brightness = 50
+except Exception:
+    brightness = 0
+
 loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
 
 if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
@@ -1102,7 +1132,6 @@ if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SE
     except Exception:
         if os.path.exists(loading_speed_file_path):
             os.remove(loading_speed_file_path)
-
 
 if os.path.exists(os.path.join(clock_files_folder, 'exit_splash.png')):
     desktop_img = pygame.image.load(os.path.join(clock_files_folder, 'exit_splash.png'))
@@ -1191,7 +1220,7 @@ for index in range(0, len(images_filenames)):
     temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
     # weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
     image_size = (
-    int(temp_image.get_rect().width * 0.6 * size_mult), int(temp_image.get_rect().height * 0.6 * size_mult))
+        int(temp_image.get_rect().width * 0.6 * size_mult), int(temp_image.get_rect().height * 0.6 * size_mult))
     weather_icons[images_filenames[index]] = pygame.transform.smoothscale(temp_image.convert_alpha(),
                                                                           image_size).convert_alpha()
     loading_progress_status += next_section_loading_amount / len(images_filenames)
@@ -1201,48 +1230,54 @@ loading_progress_status = 100
 # ------------------------------------------MENU------------------------------------------ #
 
 button_size = [int(font_25.size(' Redémarrer ')[0]), int(font_25.size(' Redémarrer ')[1] * 1.3)]
-menu_width = button_size[0] + int(150 * size_mult)
+menu_width = button_size[0] * 2# + int(200 * size_mult)
 menu_height = hauteur
 menu_surface = pygame.Surface((menu_width, menu_height), pygame.SRCALPHA)
 menu_rect = menu_surface.get_rect()
 menu_rect.centerx = int(largeur / 2)
+menu_top_left = [0, 0]
+menu_bottom_right = [0, 0]
 
-# Drawing background outline
-pygame.draw.rect(menu_surface, [0, 0, 75, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                 [int(8 * size_mult), int(24 * size_mult), round(menu_width - (16 * size_mult)),
-                  round(menu_height - (48 * size_mult))])
-pygame.draw.rect(menu_surface, [75, 0, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                 [int(24 * size_mult), int(8 * size_mult), round(menu_width - (48 * size_mult)),
-                  round(menu_height - (16 * size_mult))])
 # Corners
-pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
+menu_left_top = pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
                    [int(24 * size_mult), int(24 * size_mult)], int(16 * size_mult))
 pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                   [round(menu_width - (24 * size_mult)), int(24 * size_mult)], int(16 * size_mult))
+                   [menu_width - int(24 * size_mult), int(24 * size_mult)], int(16 * size_mult))
 pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                   [int(24 * size_mult), round(menu_height - (24 * size_mult))], int(16 * size_mult))
-pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                   [round(menu_width - (24 * size_mult)), round(menu_height - (24 * size_mult))], int(16 * size_mult))
+                   [int(24 * size_mult), menu_height - int(24 * size_mult)], int(16 * size_mult))
+menu_right_bottom = pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
+                   [menu_width - int(24 * size_mult), menu_height - int(24 * size_mult)], int(16 * size_mult))
 
-# Drawing background
-pygame.draw.rect(menu_surface, [25, 0, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                 [int(11 * size_mult), int(27 * size_mult), round(menu_width - (22 * size_mult)),
-                  round(menu_height - (54 * size_mult))])
-pygame.draw.rect(menu_surface, [0, 0, 25, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                 [int(27 * size_mult), int(11 * size_mult), round(menu_width - (54 * size_mult)),
-                  round(menu_height - (22 * size_mult))])
+# Drawing background outline
+pygame.draw.rect(menu_surface, [100, 100, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
+                [menu_left_top.left, menu_left_top.centery,
+                 menu_right_bottom.right - menu_left_top.left, menu_right_bottom.centery - menu_left_top.centery])
+pygame.draw.rect(menu_surface, [0, 100, 100, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
+                [menu_left_top.centerx, menu_left_top.top,
+                 menu_right_bottom.centerx - menu_left_top.centerx, menu_right_bottom.bottom - menu_left_top.top])
+
 # Corners
-pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
+menu_left_top = pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
                    [int(27 * size_mult), int(27 * size_mult)], int(16 * size_mult))
 pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                   [round(menu_width - (27 * size_mult)), int(27 * size_mult)], int(16 * size_mult))
+                   [menu_width - int(27 * size_mult), int(27 * size_mult)], int(16 * size_mult))
 pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                   [int(27 * size_mult), round(menu_height - (27 * size_mult))], int(16 * size_mult))
-pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                   [round(menu_width - (27 * size_mult)), round(menu_height - (27 * size_mult))], int(16 * size_mult))
+                   [int(27 * size_mult), menu_height - int(27 * size_mult)], int(16 * size_mult))
+menu_right_bottom = pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
+                   [menu_width - int(27 * size_mult), menu_height - int(27 * size_mult)], int(16 * size_mult))
+
+# Drawing background
+pygame.draw.rect(menu_surface, [0, 50, 50, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
+                [menu_left_top.left, menu_left_top.centery,
+                 menu_right_bottom.right - menu_left_top.left, menu_right_bottom.centery - menu_left_top.centery])
+pygame.draw.rect(menu_surface, [50, 50, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
+                [menu_left_top.centerx, menu_left_top.top,
+                 menu_right_bottom.centerx - menu_left_top.centerx, menu_right_bottom.bottom - menu_left_top.top])
 
 texte = font_40.render("Menu", True, [255, 255, 255])
-texte_rect = texte.get_rect(center=((menu_width // 2), 0))
+#texte_rect = texte.get_rect(center=((menu_width // 1.6), 0))
+texte_rect = texte.get_rect()
+texte_rect.left = menu_left_top.centerx
 texte_rect.top = int(11 * size_mult)
 menu_surface.blit(texte, texte_rect)
 
@@ -1250,7 +1285,7 @@ button_size = [int(font_25.size(' Redémarrer ')[0]), int(font_25.size(' Redéma
 button_size[1] = button_size[1] + 1 if button_size[1] % 2 else button_size[1]
 
 texte = font_25.render("Quitter", True, [255, 255, 255])
-button_center = (menu_width // 2, menu_height // 2)
+button_center = (menu_width // 1.65, menu_height // 2)
 texte_rect = texte.get_rect(center=button_center)
 button_quit_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
 button_quit_rect.center = texte_rect.center
@@ -1264,7 +1299,7 @@ button_quit_rect.width = button_quit_rect.width + button_quit_rect.height
 button_quit_rect.centerx = texte_rect.centerx + menu_rect.left
 
 texte = font_25.render("Redémarrer", True, [255, 255, 255])
-button_center = ((menu_width // 2), 0)
+button_center = ((menu_width // 1.65), 0)
 texte_rect = texte.get_rect(center=button_center)
 texte_rect.bottom = button_quit_rect.top - int(10 * size_mult)
 button_reboot_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
@@ -1279,7 +1314,7 @@ button_reboot_rect.width = button_reboot_rect.width + button_reboot_rect.height
 button_reboot_rect.centerx = texte_rect.centerx + menu_rect.left
 
 texte = font_25.render("Rafraîchir", True, [255, 255, 255])
-button_center = ((menu_width // 2), 0)
+button_center = ((menu_width // 1.65), 0)
 texte_rect = texte.get_rect(center=button_center)
 texte_rect.top = button_quit_rect.bottom + int(10 * size_mult)
 button_refresh_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
@@ -1294,7 +1329,7 @@ button_refresh_rect.width = button_refresh_rect.width + button_refresh_rect.heig
 button_refresh_rect.centerx = texte_rect.centerx + menu_rect.left
 
 texte = font_25.render("Retour", True, [255, 255, 255])
-button_center = (menu_width // 2, int((5.3 * menu_height) // 6))
+button_center = (menu_width // 1.65, int((5.3 * menu_height) // 6))
 texte_rect = texte.get_rect(center=button_center)
 button_back_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
 button_back_rect.center = texte_rect.center
@@ -1307,7 +1342,8 @@ menu_surface.blit(texte, texte_rect)
 button_back_rect.width = button_back_rect.width + button_back_rect.height
 button_back_rect.centerx = texte_rect.centerx + menu_rect.left
 
-menu_anim = {'active': False, 'is_opening': False, 'percent_status': 0}
+brightness_slider_rect = draw_brightness_slider(brightness)
+change_brightness_thread = Thread(target=change_brightness, daemon=True)
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -1350,20 +1386,26 @@ else:
     rect_arc_heures = [eloignement_heures, (hauteur // 2) - (largeur // 2) + eloignement_heures,
                        largeur - eloignement_heures * 2, largeur - eloignement_heures * 2]
 
-liste_calculs_couleurs = [lambda seconde: [255, int((seconde / 10.0) * 255), 0],
-                          lambda seconde: [255 - int((seconde / 10.0) * 255), 255, 0],
-                          lambda seconde: [0, 255, int((seconde / 10.0) * 255)],
-                          lambda seconde: [0, 255 - int((seconde / 10.0) * 255), 255],
-                          lambda seconde: [int((seconde / 10.0) * 255), 0, 255],
-                          lambda seconde: [255, 0, 255 - int((seconde / 10.0) * 255)]]
+color_range_lists = [
+    # Rainbow
+    [lambda seconde: [255, int((seconde / 10.0) * 255), 0],
+     lambda seconde: [255 - int((seconde / 10.0) * 255), 255, 0],
+     lambda seconde: [0, 255, int((seconde / 10.0) * 255)],
+     lambda seconde: [0, 255 - int((seconde / 10.0) * 255), 255],
+     lambda seconde: [int((seconde / 10.0) * 255), 0, 255],
+     lambda seconde: [255, 0, 255 - int((seconde / 10.0) * 255)]],
+    # Cyan-Purple-Fuchsia
+    [lambda seconde: [0, 255, 255],
+     lambda seconde: [int((seconde / 10.0) * 128), 255 - int((seconde / 10.0) * 255), 255],
+     lambda seconde: [128, 0, 255],
+     lambda seconde: [127 + int((seconde / 10.0) * 128), 0, 255 - int((seconde / 10.0) * 155)],
+     lambda seconde: [255, 0, 100],
+     lambda seconde: [255 - int((seconde / 10.0) * 255), int((seconde / 10.0) * 255),
+                      100 + int((seconde / 10.0) * 155)]]
+]
 
-# liste_calculs_couleurs = [lambda seconde: [0, 255, 255],
-# lambda seconde: [int((seconde / 10.0) * 128), 255 - int((seconde / 10.0) * 255), 255],
-# lambda seconde: [128, 0, 255],
-# lambda seconde: [127 + int((seconde / 10.0) * 128), 0, 255 - int((seconde / 10.0) * 155)],
-# lambda seconde: [255, 0, 100],
-# lambda seconde: [255 - int((seconde / 10.0) * 255), int((seconde / 10.0) * 255),
-# 100 + int((seconde / 10.0) * 155)]]
+liste_calculs_couleurs = color_range_lists.pop()
+color_range_lists.insert(0, liste_calculs_couleurs)
 
 en_fonction = True
 
@@ -1382,6 +1424,7 @@ changement_minute = False
 changement_seconde = False
 
 toggle_menu = False
+toggle_brightness = False
 
 draw_middle_circle = True
 refresh_requested = False
@@ -1578,6 +1621,7 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 
     ecran.blit(peek_surface, [0, 0])
     pygame.display.update()
+    ecran.set_clip(peek_rect)
     lift_loading_master = True
     startup_complete = True
     peek_animating = True
@@ -1606,9 +1650,14 @@ while en_fonction:
             pygame.mouse.set_visible(True)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
+            position_souris = pygame.mouse.get_pos()
             if not toggle_menu:
                 pygame.mouse.set_visible(True)
                 mouse_button_down_time = time.time()
+            else:
+                if brightness_slider_rect.collidepoint(position_souris):
+                    toggle_brightness = True
+
 
         if event.type == pygame.MOUSEBUTTONUP:
             mouse_button_down_time = 0
@@ -1621,7 +1670,19 @@ while en_fonction:
                 pygame.mouse.set_visible(True)
                 position_souris = pygame.mouse.get_pos()
                 if toggle_menu:
-                    if button_quit_rect.collidepoint(position_souris):
+                    if toggle_brightness:
+                        brightness = 100 - ((position_souris[1] - brightness_slider_rect.top) / brightness_slider_rect.height) * 100
+                        brightness = 0 if brightness < 0 else brightness
+                        brightness = 100 if brightness > 100 else brightness
+                        pygame.mouse.set_pos(largeur, hauteur)
+                        draw_brightness_slider(brightness)
+                        toggle_brightness = False
+
+                        if not change_brightness_thread.is_alive():
+                            change_brightness_thread = Thread(target=change_brightness, daemon=True)
+                            change_brightness_thread.start()
+
+                    elif button_quit_rect.collidepoint(position_souris):
                         # quitter
                         if ClockSettings.DEBUG_MODE:
                             exit()
@@ -1641,8 +1702,12 @@ while en_fonction:
                         refresh_requested = True
                         toggle_menu = False
                         pygame.mouse.set_visible(False)
-                        retour_thread['geolocate_success'] = False
-                        Thread(target=get_data, args=(retour_thread, True), daemon=True).start()
+                        liste_calculs_couleurs = color_range_lists.pop()
+                        color_range_lists.insert(0, liste_calculs_couleurs)
+
+                        if not retour_thread['thread_en_cours']:
+                            retour_thread['geolocate_success'] = False
+                            Thread(target=get_data, args=(retour_thread, True), daemon=True).start()
                 else:
                     toggle_menu = True
                     pygame.mouse.set_pos(largeur, hauteur)
@@ -1709,6 +1774,50 @@ while en_fonction:
     degree_heures = ((360 * heure_changeante) / 12)
 
     degree_heures_ligne = math.radians(degree_heures - 90)
+
+    if peek_animating:
+        peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
+        peek_blit_list = []
+
+        if (datetime.datetime.now() - maintenant).total_seconds() > 0.5 and first_frame:
+            peek_status = 0.49
+
+            if ClockSettings.DEBUG_MODE:
+                texte = font_25.render(
+                    'Lag: ' + str(round((datetime.datetime.now() - maintenant).total_seconds(), 2)) + 's', True,
+                    [200, 50, 50], [0, 0, 0])
+                texte_rect = texte.get_rect()
+                texte_rect.left, texte_rect.bottom = 0, hauteur
+                peek_surface.blit(texte, texte_rect)
+
+        if peek_status >= 0.5:
+            peek_radius = int((peek_status - 0.5) * 250 * size_mult)
+            peek_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2],
+                                           peek_radius + int(5 * size_mult))
+            pygame.draw.circle(peek_surface, [100, 50, 0], [largeur // 2, hauteur // 2], peek_radius)
+            ecran.set_clip(peek_rect)
+
+            if peek_rect.top == 0 and peek_radius >= hauteur / 2:
+                peek_rect_right = peek_rect.copy()
+                peek_rect_left = peek_rect.copy()
+
+                # Right rect
+                peek_rect_right_right = peek_rect_right.right
+                peek_rect_right.left = math.sqrt(peek_radius ** 2 - (hauteur / 2) ** 2) + largeur / 2
+                peek_rect_right.width = peek_rect_right_right - peek_rect_right.left
+                peek_blit_list.append(peek_rect_right)
+
+                # Left rect
+                peek_rect_left_left = peek_rect_left.left
+                peek_rect_left.width = largeur / 2 - math.sqrt(peek_radius ** 2 - (hauteur / 2) ** 2)
+                peek_blit_list.append(peek_rect_left)
+            else:
+                peek_blit_list.append(peek_rect)
+
+            if peek_radius > peek_radius_limit:
+                ecran.set_clip([0, 0, largeur, hauteur])
+                peek_animating = False
+                Thread(target=get_data, args=(retour_thread, True), daemon=True).start()
 
     if do_arc_cleanup and minute < 1:
         if changement_minute:
@@ -1828,22 +1937,22 @@ while en_fonction:
                             math.radians(90), int(38 * size_mult))
 
     else:
-        if not (do_arc_cleanup and minute < 1):
-            # Minutes
-            couleur_pour_minutes = seconde_a_couleur(minute_changeante, inverser=True)
-            for it in range(1, 4):
-                degree_secondes_ligne = degree_secondes - (it * 120)
-                degree_secondes_ligne = 360 - abs(
-                    degree_secondes_ligne) if degree_secondes_ligne < 0 else degree_secondes_ligne
-                if degree_minutes >= degree_secondes_ligne >= 0:
-                    degree_secondes_ligne = math.radians(degree_secondes_ligne - 90)
-                    pygame.draw.line(surface, [it * 80, 0, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
-                                     (int((largeur / 2) + math.cos(degree_secondes_ligne) * 115 * size_mult),
-                                      int((hauteur / 2) + math.sin(degree_secondes_ligne) * 115 * size_mult)),
-                                     (int((largeur / 2) + math.cos(degree_secondes_ligne) * 86 * size_mult),
-                                      int((hauteur / 2) + math.sin(degree_secondes_ligne) * 86 * size_mult)),
-                                     int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        # Minutes
+        couleur_pour_minutes = seconde_a_couleur(minute_changeante, inverser=True)
+        for it in range(1, 4):
+            degree_secondes_ligne = degree_secondes - (it * 120)
+            degree_secondes_ligne = 360 - abs(
+                degree_secondes_ligne) if degree_secondes_ligne < 0 else degree_secondes_ligne
+            if degree_minutes >= degree_secondes_ligne >= 0:
+                degree_secondes_ligne = math.radians(degree_secondes_ligne - 90)
+                pygame.draw.line(surface, [it * 80, 0, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
+                                 (int((largeur / 2) + math.cos(degree_secondes_ligne) * 115 * size_mult),
+                                  int((hauteur / 2) + math.sin(degree_secondes_ligne) * 115 * size_mult)),
+                                 (int((largeur / 2) + math.cos(degree_secondes_ligne) * 86 * size_mult),
+                                  int((hauteur / 2) + math.sin(degree_secondes_ligne) * 86 * size_mult)),
+                                 int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
 
+        if not (do_arc_cleanup and minute < 1):
             pygame.draw.line(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
                              (int((largeur / 2) + math.cos(degree_minute_ligne) * 115 * size_mult),
                               int((hauteur / 2) + math.sin(degree_minute_ligne) * 115 * size_mult)),
@@ -1851,16 +1960,17 @@ while en_fonction:
                               int((hauteur / 2) + math.sin(degree_minute_ligne) * 86 * size_mult)),
                              int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
 
-            # Heures
-            couleur_pour_heures = seconde_a_couleur((heure_changeante * 60) / 12)
-            if degree_heures >= degree_secondes >= 0:
-                pygame.draw.line(surface, [255, 0, 100] if ClockSettings.DEBUG_MODE else couleur_pour_heures,
-                                 (int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 80 * size_mult),
-                                  int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 80 * size_mult)),
-                                 (int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 41 * size_mult),
-                                  int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 41 * size_mult)),
-                                 int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        # Heures
+        couleur_pour_heures = seconde_a_couleur((heure_changeante * 60) / 12)
+        if degree_heures >= degree_secondes >= 0:
+            pygame.draw.line(surface, [255, 0, 100] if ClockSettings.DEBUG_MODE else couleur_pour_heures,
+                             (int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 80 * size_mult),
+                              int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 80 * size_mult)),
+                             (int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 41 * size_mult),
+                              int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 41 * size_mult)),
+                             int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
 
+        if not (do_arc_cleanup and minute < 1):
             pygame.draw.line(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_pour_heures,
                              (int((largeur / 2) + math.cos(degree_heures_ligne) * 80 * size_mult),
                               int((hauteur / 2) + math.sin(degree_heures_ligne) * 80 * size_mult)),
@@ -1914,7 +2024,10 @@ while en_fonction:
         draw_middle_circle = True
         refresh_requested = False
 
-    ecran.blit(surface, [0, 0])
+    if peek_animating:
+        ecran.blit(surface, [peek_rect.left, peek_rect.top], peek_rect)
+    else:
+        ecran.blit(surface, [0, 0])
 
     if retour_thread['thread_en_cours'] or ClockSettings.DEBUG_MODE:
         text_anim_frame = int(millisec * len(text_anim_frames))
@@ -2122,7 +2235,7 @@ while en_fonction:
     if ClockSettings.ENABLE_COUNTDOWN_TIMER:
         if changement_seconde or first_frame:
             # Countdown normal
-            temps_restant = datetime.datetime(2023, 7, 1, 0, 0) - maintenant
+            temps_restant = datetime.datetime(2023, 7, 21, 16, 0) - maintenant
             # Fin de journée
             # temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 
@@ -2142,8 +2255,7 @@ while en_fonction:
 
         if temps_restant != text_dict['temps_restant']['text']:
             text_dict['temps_restant']['text'] = temps_restant
-            # text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse)
-            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond)
+            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse)
             text_dict['temps_restant']['rect'] = text_dict['temps_restant']['surface'].get_rect()
             text_dict['temps_restant']['rect'].right = int(largeur - (2 * size_mult))
             text_dict['temps_restant']['rect'].bottom = hauteur
@@ -2153,19 +2265,17 @@ while en_fonction:
         # Disco
         # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
         # Smooth
-        # couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
+        couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
         # Noel (vert/rouge)
         # couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
 
-        titre_countdown = '.'
-        couleur_titre_countdown = couleur_fond
+        titre_countdown = 'Vacances :D'
 
         if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != \
                 text_dict['titre_countdown']['color']:
             text_dict['titre_countdown']['text'] = titre_countdown
             text_dict['titre_countdown']['color'] = couleur_titre_countdown
-            text_dict['titre_countdown']['surface'] = font_17.render(titre_countdown, True, couleur_titre_countdown,
-                                                                     couleur_fond)
+            text_dict['titre_countdown']['surface'] = font_17.render(titre_countdown, True, couleur_titre_countdown)
             texte_top = text_dict['temps_restant']['rect'].top
             text_dict['titre_countdown']['rect'] = text_dict['titre_countdown']['surface'].get_rect()
             text_dict['titre_countdown']['rect'].right = int(largeur - (2 * size_mult))
@@ -2224,33 +2334,23 @@ while en_fonction:
     # --------------------------------------------------------------------------------------- #
 
     if toggle_menu:
+        if toggle_brightness:
+            position_souris = pygame.mouse.get_pos()
+
+            brightness = 100 - ((position_souris[1] - brightness_slider_rect.top) / brightness_slider_rect.height) * 100
+            brightness = 0 if brightness < 0 else brightness
+            brightness = 100 if brightness > 100 else brightness
+            draw_brightness_slider(brightness)
+
+            if not change_brightness_thread.is_alive():
+                change_brightness_thread = Thread(target=change_brightness, daemon=True)
+                change_brightness_thread.start()
+
         ecran.blit(menu_surface, menu_rect)
 
     if peek_animating:
-        peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
-
-        if (datetime.datetime.now() - maintenant).total_seconds() > 0.5 and first_frame:
-            peek_status = 0.49
-
-            if ClockSettings.DEBUG_MODE:
-                texte = font_25.render(
-                    'Lag: ' + str(round((datetime.datetime.now() - maintenant).total_seconds(), 2)) + 's', True,
-                    [200, 50, 50], [0, 0, 0])
-                texte_rect = texte.get_rect()
-                texte_rect.left, texte_rect.bottom = 0, hauteur
-                peek_surface.blit(texte, texte_rect)
-
-        if peek_status >= 0.5:
-            peek_radius = int((peek_status - 0.5) * 250 * size_mult)
-            pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2],
-                               peek_radius + int(5 * size_mult))
-            pygame.draw.circle(peek_surface, [100, 50, 0], [largeur // 2, hauteur // 2], peek_radius)
-
-            if peek_radius > peek_radius_limit:
-                peek_animating = False
-                Thread(target=get_data, args=(retour_thread, True), daemon=True).start()
-
-        ecran.blit(peek_surface, [0, 0])
+        for rect in peek_blit_list:
+            ecran.blit(peek_surface, [rect.left, rect.top], rect)
 
     duree_last_frame = sleep_until_next_frame()
 
@@ -2269,18 +2369,8 @@ while en_fonction:
 
 pygame.mouse.set_pos(largeur, hauteur)
 pygame.mouse.set_visible(False)
+ecran.set_clip([0, 0, largeur, hauteur])
 peek_surface.blit(ecran, [0, 0])
-
-corner_distances = [math.sqrt((position_souris[0] - 0) ** 2.0 + (position_souris[1] - 0) ** 2.0),
-                    math.sqrt((position_souris[0] - largeur) ** 2.0 + (position_souris[1] - 0) ** 2.0),
-                    math.sqrt((position_souris[0] - 0) ** 2.0 + (position_souris[1] - hauteur) ** 2.0),
-                    math.sqrt((position_souris[0] - largeur) ** 2.0 + (position_souris[1] - hauteur) ** 2.0)]
-
-corner_distances.sort()
-
-peek_radius_limit = corner_distances.pop()
-peek_status = 0
-peek_radius = 0
 
 surface.fill([0, 0, 0])
 
@@ -2291,18 +2381,58 @@ if not startup_complete:
 elif DisplaySettings.AUTOMATIC_RESOLUTION and (DisplaySettings.FULLSCREEN or DisplaySettings.BORDERLESS_WINDOW):
     surface.blit(desktop_img, [0, 0])
 
+corner_distances = [math.sqrt((position_souris[0] - 0) ** 2.0 + (position_souris[1] - 0) ** 2.0),
+                    math.sqrt((position_souris[0] - largeur) ** 2.0 + (position_souris[1] - 0) ** 2.0),
+                    math.sqrt((position_souris[0] - 0) ** 2.0 + (position_souris[1] - hauteur) ** 2.0),
+                    math.sqrt((position_souris[0] - largeur) ** 2.0 + (position_souris[1] - hauteur) ** 2.0)]
+
+corner_distances.sort()
+peek_radius_limit = corner_distances.pop()
+peek_radius = 0
+peek_status = 0
+peek_blit_list = []
+a_squared = position_souris[1] ** 2 if position_souris[1] > hauteur / 2 else (hauteur - position_souris[1]) ** 2
+
 while peek_radius <= peek_radius_limit:
     maintenant = datetime.datetime.now()
 
     peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
 
     peek_radius = int(peek_status * 250 * size_mult)
-    splash_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [position_souris[0], position_souris[1]],
-                       peek_radius + int(5 * size_mult))
+    peek_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [position_souris[0], position_souris[1]],
+                                   peek_radius + int(5 * size_mult))
     pygame.draw.circle(peek_surface, [100, 50, 0], [position_souris[0], position_souris[1]], peek_radius)
 
-    ecran.blit(surface, [splash_rect.left, splash_rect.top], splash_rect)
-    ecran.blit(peek_surface, [splash_rect.left, splash_rect.top], splash_rect)
+    for rect in peek_blit_list:
+        if peek_radius ** 2 >= a_squared:
+            rect.height = hauteur
+            ecran.blit(surface, [rect.left, rect.top], rect)
+
+    peek_blit_list = []
+
+    if peek_radius ** 2 >= a_squared:
+        peek_rect_right = peek_rect.copy()
+        peek_rect_left = peek_rect.copy()
+
+        # Right rect
+        peek_rect_right_right = peek_rect_right.right
+        peek_rect_right.left = math.sqrt(peek_radius ** 2 - a_squared) + position_souris[0]
+        peek_rect_right.width = peek_rect_right_right - peek_rect_right.left
+
+        if peek_rect_right.left <= largeur:
+            peek_blit_list.append(peek_rect_right)
+
+        # Left rect
+        peek_rect_left_left = peek_rect_left.left
+        peek_rect_left.width = position_souris[0] - math.sqrt(peek_radius ** 2 - a_squared)
+        if peek_rect_left.right >= 0:
+            peek_blit_list.append(peek_rect_left)
+    else:
+        peek_blit_list.append(peek_rect)
+
+    for rect in peek_blit_list:
+        ecran.blit(surface, [rect.left, rect.top], rect)
+        ecran.blit(peek_surface, [rect.left, rect.top], rect)
 
     duree_last_frame = sleep_until_next_frame()
 
@@ -2310,13 +2440,13 @@ while peek_radius <= peek_radius_limit:
 if startup_complete:
     os.system('sudo pkill -9 -f "python3 .*/myclock.py$"')
 else:
-    time.sleep(1)
+    # time.sleep(1)
     try:
-        import RPi.GPIO as GPIO
+        # import RPi.GPIO as GPIO
 
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(23, GPIO.OUT)
-        GPIO.output(23, 1)
+        # GPIO.setmode(GPIO.BOARD)
+        # GPIO.setup(23, GPIO.OUT)
+        # GPIO.output(23, 1)
         os.system("sudo reboot")
         time.sleep(5)
     except Exception:
