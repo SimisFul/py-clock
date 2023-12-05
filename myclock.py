@@ -10,13 +10,14 @@ class ClockSettings(object):
     ENABLE_LOADING_ANIMATION = True
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek, peek_lite
     DEBUG_LOADING_ANIMATION = False
+    ANDROID_MODE = False
     FETCH_RELAIS_DATA = False
     SHOW_MINING_INFO = True
 
 
 class DisplaySettings(object):
-    SCREEN_WIDTH = 800
-    SCREEN_HEIGHT = 480
+    SCREEN_WIDTH = 960
+    SCREEN_HEIGHT = 600
     FULLSCREEN = False
     AUTOMATIC_RESOLUTION = True
     BORDERLESS_WINDOW = True
@@ -275,7 +276,7 @@ def show_peek_loading_screen(largeur, hauteur):
                 while not startup_complete:
                     time.sleep(0.05)
                 break
-            else:
+            elif loading_progress_status < 100:  # Don't start another loop if we're about to be done
                 wait_for_peek_animation = True
                 animation_paused = False
 
@@ -306,7 +307,7 @@ def show_peek_loading_screen(largeur, hauteur):
         # Makes the tft screen have to refresh a large enough area so that it can't display the black flicker when switching from tkinter to pygame
         canvas.itemconfigure(circle_secs, fill='#181818')
         loading_master.update()
-    #loading_master.withdraw()
+    # loading_master.withdraw()
     lift_loading_master = False
     loading_master.withdraw()
     time.sleep(0.2)
@@ -315,12 +316,20 @@ def show_peek_loading_screen(largeur, hauteur):
 
 # ---------------------------------------------------------------------------------------- #
 
-print("The clock has started running!")
+print('The clock has started running!')
 
-import tkinter as tk
-import os
+if ClockSettings.ANDROID_MODE:
+    print(
+        'ANDROID_MODE enabled, this feature is meant to be used when this clock is used inside a buildozer made application.')
+    ClockSettings.ENABLE_LOADING_ANIMATION = False
 
-clock_files_folder = os.path.join(os.path.dirname(__file__), 'clock_files')
+if ClockSettings.ENABLE_LOADING_ANIMATION:
+    import tkinter as tk
+
+import os, sys
+
+clock_files_folder = os.path.abspath('.') + '/clock_files' if ClockSettings.ANDROID_MODE else os.path.join(
+    os.path.dirname(__file__), 'clock_files')
 
 if os.name == "nt":
     from ctypes import windll
@@ -331,14 +340,15 @@ os.environ['SDL_VIDEO_WINDOW_POS'] = DisplaySettings.X_POS + ',' + DisplaySettin
 
 desktop_img = None
 
-try:
-    import mss
+if not os.path.exists(os.path.join(clock_files_folder, 'exit_splash.png')):
+    try:
+        import mss
 
-    with mss.mss() as desktop_img:
-        desktop_img = desktop_img.grab(desktop_img.monitors[0])
-except Exception:
-    print('Screenshot failed!')
-    desktop_img = None
+        with mss.mss() as desktop_img:
+            desktop_img = desktop_img.grab(desktop_img.monitors[0])
+    except Exception:
+        print('Screenshot failed!')
+        desktop_img = None
 
 status_loading_text = "Pygame: 1/2"
 startup_complete = False
@@ -350,11 +360,26 @@ loading_checkpoint = 0
 wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION.startswith(
     'peek') and ClockSettings.ENABLE_LOADING_ANIMATION
 
-loading_master = tk.Tk()
+if ClockSettings.ANDROID_MODE or not ClockSettings.ENABLE_LOADING_ANIMATION:
+    old_stdout = sys.stdout
+    sys.stdout = open(os.devnull, 'w')
+    import pygame
+
+    sys.stdout = old_stdout
+
+    pygame.display.init()
+    AutoRes = pygame.display.Info()
+    largeur_ecran = AutoRes.current_w
+    hauteur_ecran = AutoRes.current_h
+else:
+    tk_root = tk.Tk()
+    largeur_ecran = tk_root.winfo_screenwidth()
+    hauteur_ecran = tk_root.winfo_screenheight()
+    tk_root.destroy()
 
 if DisplaySettings.AUTOMATIC_RESOLUTION:
-    largeur = loading_master.winfo_screenwidth()
-    hauteur = loading_master.winfo_screenheight()
+    largeur = int((largeur_ecran / 2) if ClockSettings.ANDROID_MODE else largeur_ecran)
+    hauteur = int((hauteur_ecran / 2) if ClockSettings.ANDROID_MODE else hauteur_ecran)
 
 else:
     largeur = DisplaySettings.SCREEN_WIDTH
@@ -370,21 +395,15 @@ resolution = int(largeur), int(hauteur)
 
 peek_progress_height = 2 if int(2 * size_mult) < 2 else int(2 * size_mult)
 
-# Juste le texte pour afficher le plus rapidement possible
-loading_master.geometry(str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
-loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not DisplaySettings.FULLSCREEN)
-loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
-loading_master.config(cursor="none")
-loading_master["bg"] = "black"
-# loading_master.update()
-if not ClockSettings.ENABLE_LOADING_ANIMATION:
-    loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white",
-                             bg="black")
-    loading_label.place(x=(largeur / 2),
-                        y=(hauteur / 2),
-                        anchor='center')
-    loading_master.update()
-elif ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
+if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
+    # Juste le texte pour afficher le plus rapidement possible
+    loading_master = tk.Tk()
+    loading_master.geometry(
+        str(largeur) + "x" + str(hauteur) + "+" + DisplaySettings.X_POS + "+" + DisplaySettings.Y_POS)
+    loading_master.overrideredirect(DisplaySettings.BORDERLESS_WINDOW and not DisplaySettings.FULLSCREEN)
+    loading_master.attributes("-fullscreen", DisplaySettings.FULLSCREEN)
+    loading_master.config(cursor="none")
+    loading_master["bg"] = "black"
     loading_label = tk.Label(loading_master, font=(None, int(20 * size_mult)), text='Chargement...', fg="white",
                              bg="black")
     loading_label.place(x=(largeur / 2),
@@ -436,8 +455,6 @@ if ClockSettings.DEBUG_LOADING_ANIMATION:
     time.sleep(1)
     startup_complete = True
     exit()
-
-import sys
 
 old_stdout = sys.stdout
 sys.stdout = open(os.devnull, 'w')
@@ -815,7 +832,8 @@ def ping_this(url):
     try:
         urllib.request.urlopen(url, timeout=30)
         return True
-    except Exception:
+    except Exception as error:
+        print(error)
         return False
 
 
@@ -1027,20 +1045,29 @@ def draw_brightness_slider(brightness):
 
 def change_brightness():
     last_brightness_value = -1
-    value_to_insert = int((brightness / 100) * 230) + 25
-    try:
-        while last_brightness_value != value_to_insert:
-            if running_as_admin:
-                with open('/sys/class/backlight/rpi_backlight/brightness', "w") as f:
-                    f.write(str(value_to_insert))
-            else:
-                os.system(
-                    'echo ' + str(value_to_insert) + ' | sudo tee -a /sys/class/backlight/rpi_backlight/brightness')
-            with open('/sys/class/backlight/rpi_backlight/brightness') as f:
-                last_brightness_value = int(f.read())
-            value_to_insert = int((brightness / 100) * 230) + 25
-    except Exception:
-        pass
+
+    if ClockSettings.ANDROID_MODE:
+        try:
+            while brightness - 1 > last_brightness_value or brightness + 1 < last_brightness_value:
+                android_brightness.set_level(brightness)
+                last_brightness_value = android_brightness.current_level()
+        except Exception:
+            pass
+    else:
+        value_to_insert = int((brightness / 100) * 230) + 25
+        try:
+            while last_brightness_value != value_to_insert:
+                if running_as_admin:
+                    with open('/sys/class/backlight/rpi_backlight/brightness', "w") as f:
+                        f.write(str(value_to_insert))
+                else:
+                    os.system(
+                        'echo ' + str(value_to_insert) + ' | sudo tee -a /sys/class/backlight/rpi_backlight/brightness')
+                with open('/sys/class/backlight/rpi_backlight/brightness') as f:
+                    last_brightness_value = int(f.read())
+                value_to_insert = int((brightness / 100) * 230) + 25
+        except Exception:
+            pass
 
 
 def get_color_switch_surface(index=0):
@@ -1062,10 +1089,10 @@ def get_color_switch_surface(index=0):
 
         if current_color == color_switch_colorkey:
             current_color = [current_color[0] + 1, current_color[1] + 1, current_color[2] + 1]
-            
+
         pygame.draw.rect(color_switch_surface, current_color,
                          [inside_rect.left + (inside_rect.width * it / 120), inside_rect.top,
-                          math.ceil(inside_rect.width/120), inside_rect.height])
+                          math.ceil(inside_rect.width / 120), inside_rect.height])
 
     pygame.draw.circle(color_switch_surface, [75, 75, 75],
                        (int(color_switch_surface_rect.width / 2), int(color_switch_surface_rect.height / 2)),
@@ -1079,7 +1106,6 @@ def get_color_switch_surface(index=0):
 
     color_switch_final_surface = pygame.Surface((color_switch_rect.width * 2, color_switch_rect.height * 2))
 
-
     return color_switch_surface, color_switch_rect
 
 
@@ -1088,7 +1114,6 @@ def save_color_scheme():
         with open(color_scheme_path, "w") as f:
             f.write(str(active_color_scheme))
     except Exception:
-        raise
         pass
 
 
@@ -1098,8 +1123,8 @@ if ClockSettings.DEBUG_MODE:
 
 status_loading_text = "Pygame: 2/2"
 
-if ClockSettings.ENABLE_LOADING_ANIMATION:
-    loading_master.withdraw()
+if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION == 'progress':
+    loading_master.destroy()
     lift_loading_master = True
 
 pygame.display.init()
@@ -1117,8 +1142,13 @@ pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(12
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
 
-if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
-    pygame.draw.rect(peek_surface, [64, 64, 64],
+if ClockSettings.ENABLE_LOADING_ANIMATION:
+    if ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
+        pygame.draw.rect(peek_surface, [64, 64, 64],
+                         [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur,
+                          peek_progress_height])
+else:
+    pygame.draw.rect(peek_surface, [25, 25, 25],
                      [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur, peek_progress_height])
 
 loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
@@ -1126,9 +1156,13 @@ loading_checkpoint += 1
 
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
     if DisplaySettings.FULLSCREEN:
-        ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
-        ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
+        if ClockSettings.ANDROID_MODE:
+            ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN | pygame.SCALED)
+        else:
+            ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
+            ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
     elif DisplaySettings.BORDERLESS_WINDOW:
+        ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
         ecran = pygame.display.set_mode((1, 1))
         ecran = pygame.display.set_mode(resolution, pygame.NOFRAME)
     else:
@@ -1137,17 +1171,41 @@ if not ClockSettings.ENABLE_LOADING_ANIMATION:
 
     ecran.blit(peek_surface, [0, 0])
     pygame.display.update()
-    loading_master.withdraw()
-    pygame.display.update()
 else:
     ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
     lift_loading_master = True
 
+if ClockSettings.ANDROID_MODE:
+    try:
+        from jnius import autoclass, cast
+
+        System = autoclass('android.provider.Settings$System')
+        system = System()
+
+        PythonActivity = autoclass('org.kivy.android.PythonActivity')
+        currentActivity = cast('android.app.Activity', PythonActivity.mActivity)
+        context = cast('android.content.Context', currentActivity.getApplicationContext())
+        if not system.canWrite(context):
+            settings = autoclass('android.provider.Settings')
+            Intent = autoclass('android.content.Intent')
+            intent = Intent()
+            intent.setAction(settings.ACTION_MANAGE_WRITE_SETTINGS)
+            # Open a screen on the device so that the user can allow the App to
+            # write system settings
+            currentActivity.startActivity(intent)
+
+        from android import loadingscreen
+
+        loadingscreen.hide_loading_screen()
+        pygame.display.update()
+
+        from plyer import brightness as android_brightness
+    except Exception:
+        pass
+
 status_loading_text = "Modules"
 loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
 loading_checkpoint += 1
-
-loading_master.destroy()
 
 surface = pygame.Surface(resolution)
 
@@ -1157,7 +1215,7 @@ couleur_fond = ClockSettings.BACKGROUND_COLOR
 
 couleur_fond_inverse = [255 - couleur_fond[0], 255 - couleur_fond[1], 255 - couleur_fond[2]]
 
-import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, sys, re
+import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, re
 from random import randint, uniform
 
 loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
@@ -1180,25 +1238,36 @@ brightness = 50
 
 running_as_admin = False
 
-try:
-    with open('/sys/class/backlight/rpi_backlight/brightness') as f:
-        brightness = int(f.read())
-
+if ClockSettings.ANDROID_MODE:
     try:
-        with open('/sys/class/backlight/rpi_backlight/brightness', "w") as f:
-            f.write(str(brightness))
-        running_as_admin = True
-    except PermissionError:
-        running_as_admin = False
+        brightness = android_brightness.current_level()
+
+        if 0 <= brightness <= 100:
+            android_brightness.set_level(brightness)
+        else:
+            brightness = 50
     except Exception:
-        running_as_admin = False
-
-    brightness = ((brightness - 25) / 230) * 100
-
-    if not (0 <= brightness <= 100):
         brightness = 50
-except Exception:
-    brightness = 50
+else:
+    try:
+        with open('/sys/class/backlight/rpi_backlight/brightness') as f:
+            brightness = int(f.read())
+
+        try:
+            with open('/sys/class/backlight/rpi_backlight/brightness', "w") as f:
+                f.write(str(brightness))
+            running_as_admin = True
+        except PermissionError:
+            running_as_admin = False
+        except Exception:
+            running_as_admin = False
+
+        brightness = ((brightness - 25) / 230) * 100
+
+        if not (0 <= brightness <= 100):
+            brightness = 50
+    except Exception:
+        brightness = 50
 
 active_color_scheme = 0
 
@@ -1289,6 +1358,19 @@ if AnimationLoopSettings.ENABLED:
         loop_images.append(temp_surface.convert())
         loading_progress_status += next_section_loading_amount / len(images_filenames)
 
+        if not ClockSettings.ENABLE_LOADING_ANIMATION:
+            if index < len(images_filenames) - 1:
+                pygame.draw.rect(ecran, [64, 64, 64], [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height,
+                                                       int(hauteur * (index + 1) / len(images_filenames)),
+                                                       peek_progress_height])
+            else:
+                pygame.draw.rect(peek_surface, [64, 64, 64],
+                                 [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur,
+                                  peek_progress_height])
+                ecran.blit(peek_surface, [0, 0])
+
+            pygame.display.update()
+
     temp_surface = None
     temp_image = None
     loop_images_len = len(loop_images)
@@ -1351,7 +1433,15 @@ color_schemes = [
      lambda seconde: [150 - int((seconde / 10.0) * 50), 150 - int((seconde / 10.0) * 50),
                       150 - int((seconde / 10.0) * 50)],
      lambda seconde: [100 - int((seconde / 10.0) * 50), 100 - int((seconde / 10.0) * 50),
-                      100 - int((seconde / 10.0) * 50)]]]
+                      100 - int((seconde / 10.0) * 50)]],
+    # Wine-Red-and-White
+    [lambda seconde: [255, 255, 100 + int((seconde / 10.0) * 100)],
+     lambda seconde: [255 - int((seconde / 10.0) * 55), 255 - int((seconde / 10.0) * 255),
+                      200 - int((seconde / 10.0) * 200)],
+     lambda seconde: [200 - int((seconde / 10.0) * 100), 0, 0],
+     lambda seconde: [100 + int((seconde / 10.0) * 100), 0, 0],
+     lambda seconde: [200 + int((seconde / 10.0) * 55), int((seconde / 10.0) * 255), int((seconde / 10.0) * 200)],
+     lambda seconde: [255, 255, 200 - int((seconde / 10.0) * 100)]]]
 
 liste_calculs_couleurs = color_schemes[active_color_scheme]
 # liste_calculs_couleurs = color_schemes.pop()
@@ -1362,8 +1452,9 @@ color_offset = uniform(0, 59)
 # ------------------------------------------MENU------------------------------------------ #
 
 button_size = [int(font_25.size(' Redémarrer ')[0]), int(font_25.size(' Redémarrer ')[1] * 1.3)]
-menu_width = button_size[0] * 2  # + int(200 * size_mult)
-menu_height = hauteur
+menu_width = (button_size[0] * 2) * 2  # + int(200 * size_mult)
+menu_height = hauteur * 2
+menu_size_mult = size_mult * 2
 menu_surface = pygame.Surface((menu_width, menu_height), pygame.SRCALPHA)
 menu_rect = menu_surface.get_rect()
 menu_rect.centerx = int(largeur / 2)
@@ -1372,14 +1463,14 @@ menu_bottom_right = [0, 0]
 
 # Corners
 menu_left_top = pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                                   [int(24 * size_mult), int(24 * size_mult)], int(16 * size_mult))
+                                   [int(24 * menu_size_mult), int(24 * menu_size_mult)], int(16 * menu_size_mult))
 pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                   [menu_width - int(24 * size_mult), int(24 * size_mult)], int(16 * size_mult))
+                   [menu_width - int(24 * menu_size_mult), int(24 * menu_size_mult)], int(16 * menu_size_mult))
 pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                   [int(24 * size_mult), menu_height - int(24 * size_mult)], int(16 * size_mult))
+                   [int(24 * menu_size_mult), menu_height - int(24 * menu_size_mult)], int(16 * menu_size_mult))
 menu_right_bottom = pygame.draw.circle(menu_surface, [0, 75, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
-                                       [menu_width - int(24 * size_mult), menu_height - int(24 * size_mult)],
-                                       int(16 * size_mult))
+                                       [menu_width - int(24 * menu_size_mult), menu_height - int(24 * menu_size_mult)],
+                                       int(16 * menu_size_mult))
 
 # Drawing background outline
 pygame.draw.rect(menu_surface, [100, 100, 0, 255] if ClockSettings.DEBUG_MODE else [75, 75, 75, 255],
@@ -1391,14 +1482,14 @@ pygame.draw.rect(menu_surface, [0, 100, 100, 255] if ClockSettings.DEBUG_MODE el
 
 # Corners
 menu_left_top = pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                                   [int(27 * size_mult), int(27 * size_mult)], int(16 * size_mult))
+                                   [int(27 * menu_size_mult), int(27 * menu_size_mult)], int(16 * menu_size_mult))
 pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                   [menu_width - int(27 * size_mult), int(27 * size_mult)], int(16 * size_mult))
+                   [menu_width - int(27 * menu_size_mult), int(27 * menu_size_mult)], int(16 * menu_size_mult))
 pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                   [int(27 * size_mult), menu_height - int(27 * size_mult)], int(16 * size_mult))
+                   [int(27 * menu_size_mult), menu_height - int(27 * menu_size_mult)], int(16 * menu_size_mult))
 menu_right_bottom = pygame.draw.circle(menu_surface, [0, 25, 0, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
-                                       [menu_width - int(27 * size_mult), menu_height - int(27 * size_mult)],
-                                       int(16 * size_mult))
+                                       [menu_width - int(27 * menu_size_mult), menu_height - int(27 * menu_size_mult)],
+                                       int(16 * menu_size_mult))
 
 # Drawing background
 pygame.draw.rect(menu_surface, [0, 50, 50, 240] if ClockSettings.DEBUG_MODE else [25, 25, 25, 240],
@@ -1408,6 +1499,14 @@ pygame.draw.rect(menu_surface, [50, 50, 0, 240] if ClockSettings.DEBUG_MODE else
                  [menu_left_top.centerx, menu_left_top.top,
                   menu_right_bottom.centerx - menu_left_top.centerx, menu_right_bottom.bottom - menu_left_top.top])
 
+# Scale the menu back down to create smooth edges
+menu_width = int(menu_width / 2)  # + int(200 * size_mult)
+menu_height = int(menu_height / 2)
+
+menu_surface = pygame.transform.smoothscale(menu_surface.convert_alpha(), (menu_width, menu_height))
+menu_rect = menu_surface.get_rect()
+menu_rect.centerx = int(largeur / 2)
+
 texte = font_40.render("Menu", True, [255, 255, 255])
 texte_rect = texte.get_rect(center=((menu_width // 2), 0))
 # texte_rect = texte.get_rect()
@@ -1415,21 +1514,32 @@ texte_rect = texte.get_rect(center=((menu_width // 2), 0))
 texte_rect.top = int(11 * size_mult)
 menu_surface.blit(texte, texte_rect)
 
-button_size = [int(font_25.size(' Redémarrer ')[0]), int(font_25.size(' Redémarrer ')[1] * 1.3)]
 button_size[1] = button_size[1] + 1 if button_size[1] % 2 else button_size[1]
+button_size[0] = button_size[0] * 2
+button_size[1] = button_size[1] * 2
+button_surface = pygame.Surface((button_size[0] + button_size[1], button_size[1]), pygame.SRCALPHA)
+button_rect = pygame.Rect([int(button_size[1] / 2), 0, button_size[0], button_size[1]])
+pygame.draw.rect(button_surface, [100, 0, 100, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0], button_rect)
+pygame.draw.circle(button_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
+                   [button_rect.left, button_rect.centery], int(button_size[1] / 2))
+pygame.draw.circle(button_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
+                   [button_rect.right, button_rect.centery], int(button_size[1] / 2))
+button_rect.width = button_rect.width + button_rect.height
+
+button_size[0] = int(button_size[0] / 2)
+button_size[1] = int(button_size[1] / 2)
+
+button_surface = pygame.transform.smoothscale(button_surface.convert_alpha(),
+                                              (button_size[0] + button_size[1], button_size[1]))
 
 texte = font_25.render("Quitter", True, [255, 255, 255])
 button_center = (menu_width // 1.65, menu_height // 2)
 texte_rect = texte.get_rect(center=button_center)
 button_quit_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
+button_quit_rect.width = button_size[0] + button_size[1]
 button_quit_rect.center = texte_rect.center
-pygame.draw.rect(menu_surface, [100, 0, 100, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0], button_quit_rect)
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_quit_rect.left, button_quit_rect.centery], int(button_size[1] / 2))
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_quit_rect.right, button_quit_rect.centery], int(button_size[1] / 2))
+menu_surface.blit(button_surface, button_quit_rect)
 menu_surface.blit(texte, texte_rect)
-button_quit_rect.width = button_quit_rect.width + button_quit_rect.height
 button_quit_rect.centerx = texte_rect.centerx + menu_rect.left
 
 texte = font_25.render("Redémarrer", True, [255, 255, 255])
@@ -1437,14 +1547,10 @@ button_center = ((menu_width // 1.65), 0)
 texte_rect = texte.get_rect(center=button_center)
 texte_rect.bottom = button_quit_rect.top - int(10 * size_mult)
 button_reboot_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
+button_reboot_rect.width = button_size[0] + button_size[1]
 button_reboot_rect.center = texte_rect.center
-pygame.draw.rect(menu_surface, [100, 0, 100, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0], button_reboot_rect)
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_reboot_rect.left, button_reboot_rect.centery], int(button_size[1] / 2))
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_reboot_rect.right, button_reboot_rect.centery], int(button_size[1] / 2))
+menu_surface.blit(button_surface, button_reboot_rect)
 menu_surface.blit(texte, texte_rect)
-button_reboot_rect.width = button_reboot_rect.width + button_reboot_rect.height
 button_reboot_rect.centerx = texte_rect.centerx + menu_rect.left
 
 texte = font_25.render("Rafraîchir", True, [255, 255, 255])
@@ -1452,28 +1558,20 @@ button_center = ((menu_width // 1.65), 0)
 texte_rect = texte.get_rect(center=button_center)
 texte_rect.top = button_quit_rect.bottom + int(10 * size_mult)
 button_refresh_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
+button_refresh_rect.width = button_size[0] + button_size[1]
 button_refresh_rect.center = texte_rect.center
-pygame.draw.rect(menu_surface, [100, 0, 100, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0], button_refresh_rect)
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_refresh_rect.left, button_refresh_rect.centery], int(button_size[1] / 2))
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_refresh_rect.right, button_refresh_rect.centery], int(button_size[1] / 2))
+menu_surface.blit(button_surface, button_refresh_rect)
 menu_surface.blit(texte, texte_rect)
-button_refresh_rect.width = button_refresh_rect.width + button_refresh_rect.height
 button_refresh_rect.centerx = texte_rect.centerx + menu_rect.left
 
 texte = font_25.render("Retour", True, [255, 255, 255])
 button_center = (menu_width // 1.65, int((5.3 * menu_height) // 6))
 texte_rect = texte.get_rect(center=button_center)
 button_back_rect = pygame.Rect([0, 0, button_size[0], button_size[1]])
+button_back_rect.width = button_size[0] + button_size[1]
 button_back_rect.center = texte_rect.center
-pygame.draw.rect(menu_surface, [100, 0, 100, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0], button_back_rect)
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_back_rect.left, button_back_rect.centery], int(button_size[1] / 2))
-pygame.draw.circle(menu_surface, [150, 0, 150, 240] if ClockSettings.DEBUG_MODE else [0, 0, 0],
-                   [button_back_rect.right, button_back_rect.centery], int(button_size[1] / 2))
+menu_surface.blit(button_surface, button_back_rect)
 menu_surface.blit(texte, texte_rect)
-button_back_rect.width = button_back_rect.width + button_back_rect.height
 button_back_rect.centerx = texte_rect.centerx + menu_rect.left
 
 brightness_slider_rect = draw_brightness_slider(brightness)
@@ -1487,7 +1585,8 @@ for it in range(len(color_schemes)):
 color_switch_rect = color_switch_surfaces[0][1]
 color_switch_thread = Thread(target=save_color_scheme)
 
-menu_surface.blit(color_switch_surfaces[active_color_scheme][0], [color_switch_rect.left - menu_rect.left, color_switch_rect.top - menu_rect.top])
+menu_surface.blit(color_switch_surfaces[active_color_scheme][0],
+                  [color_switch_rect.left - menu_rect.left, color_switch_rect.top - menu_rect.top])
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -1726,6 +1825,7 @@ peek_animating = False
 peek_radius = 0
 peek_radius_limit = math.sqrt(hauteur ** 2 + largeur ** 2) / 2
 peek_status = 0
+peek_delay = 0.5 if ClockSettings.ENABLE_LOADING_ANIMATION else 0
 
 while wait_for_peek_animation:
     time.sleep(0.05)
@@ -1742,12 +1842,14 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
 
     ecran.blit(peek_surface, [0, 0])
     pygame.display.update()
-    ecran.set_clip(peek_rect)
     lift_loading_master = True
     startup_complete = True
-    peek_animating = True
     while lift_loading_master:
         continue
+
+if not ClockSettings.DEBUG_MODE or ClockSettings.ENABLE_LOADING_ANIMATION:
+    peek_animating = True
+    ecran.set_clip(peek_rect)
 
 pygame.display.update()
 
@@ -1755,7 +1857,7 @@ peek_surface.set_colorkey([100, 50, 0])  # Ici pour aider les update/blit à êt
 
 get_forecast_too = True
 
-if not ClockSettings.ENABLE_LOADING_ANIMATION:
+if ClockSettings.DEBUG_MODE and not ClockSettings.ENABLE_LOADING_ANIMATION:
     Thread(target=get_data, args=(retour_thread, get_forecast_too), daemon=True).start()
 
 maintenant = datetime.datetime.now()
@@ -1837,7 +1939,9 @@ while en_fonction:
                         # liste_calculs_couleurs = color_schemes.pop()
                         # color_schemes.insert(0, liste_calculs_couleurs)
                         # get_color_switch_surface()
-                        menu_surface.blit(color_switch_surfaces[active_color_scheme][0], [color_switch_rect.left - menu_rect.left, color_switch_rect.top - menu_rect.top])
+                        menu_surface.blit(color_switch_surfaces[active_color_scheme][0],
+                                          [color_switch_rect.left - menu_rect.left,
+                                           color_switch_rect.top - menu_rect.top])
 
                         while color_switch_thread.is_alive():
                             continue
@@ -1915,19 +2019,11 @@ while en_fonction:
         peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
         peek_blit_list = []
 
-        if (datetime.datetime.now() - maintenant).total_seconds() > 0.5 and first_frame:
-            peek_status = 0.49
+        if (datetime.datetime.now() - maintenant).total_seconds() > peek_delay and first_frame:
+            peek_status = peek_delay
 
-            if ClockSettings.DEBUG_MODE:
-                texte = font_25.render(
-                    'Lag: ' + str(round((datetime.datetime.now() - maintenant).total_seconds(), 2)) + 's', True,
-                    [200, 50, 50], [0, 0, 0])
-                texte_rect = texte.get_rect()
-                texte_rect.left, texte_rect.bottom = 0, hauteur
-                peek_surface.blit(texte, texte_rect)
-
-        if peek_status >= 0.5:
-            peek_radius = int((peek_status - 0.5) * 250 * size_mult)
+        if peek_status >= peek_delay:
+            peek_radius = int((peek_status - peek_delay) * 250 * size_mult)
             peek_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2],
                                            peek_radius + int(5 * size_mult))
             pygame.draw.circle(peek_surface, [100, 50, 0], [largeur // 2, hauteur // 2], peek_radius)
@@ -2575,7 +2671,38 @@ while peek_radius <= peek_radius_limit:
 
 # Reusing startup_complete since its only needed during startup
 if startup_complete:
-    os.system('pkill -9 -f "python3 .*/myclock.py$"')
+    if ClockSettings.ANDROID_MODE:
+        # This should be the best solution but it only works half the time :/
+        """PythonActivity = autoclass('org.kivy.android.PythonActivity')
+        activity = PythonActivity.mActivity
+        maintenant = datetime.datetime.now()
+        activity.finishWithoutAnimation()"""
+
+
+        # This tries to prevent the exit animation from playing
+        def exit_android():
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            activity.finish()
+
+
+        PythonActivity = autoclass('org.kivy.android.PythonActivity')
+        activity = PythonActivity.mActivity
+        maintenant = time.time()
+        android_exit_thread = Thread(target=exit_android)
+        android_exit_thread.start()
+
+        activity.overridePendingTransition(0, 0)
+
+        while time.time() - maintenant < 1:
+            activity.overridePendingTransition(0, 0)
+
+        while android_exit_thread.is_alive():
+            activity.overridePendingTransition(0, 0)
+
+        activity.overridePendingTransition(0, 0)
+    else:
+        os.system('sudo pkill -9 -f "python3 .*/myclock.py$"')
 else:
     # time.sleep(1)
     try:
