@@ -7,19 +7,17 @@ class ClockSettings(object):
     FRAMERATE = None  # None = unlimited fps
     LOW_FRAMERATE_MODE = False
     FONT = "moonget-fixed.ttf"
-    ENABLE_LOADING_ANIMATION = True
+    ENABLE_LOADING_ANIMATION = False
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek, peek_lite
     DEBUG_LOADING_ANIMATION = False
     ANDROID_MODE = False
-    FETCH_RELAIS_DATA = False
-    SHOW_MINING_INFO = True
 
 
 class DisplaySettings(object):
-    SCREEN_WIDTH = 960
-    SCREEN_HEIGHT = 600
+    SCREEN_WIDTH = 800
+    SCREEN_HEIGHT = 480
     FULLSCREEN = False
-    AUTOMATIC_RESOLUTION = True
+    AUTOMATIC_RESOLUTION = False
     BORDERLESS_WINDOW = True
     X_POS = '0'
     Y_POS = '0'
@@ -27,13 +25,20 @@ class DisplaySettings(object):
 
 class AnimationLoopSettings(object):
     ENABLED = True
-    DIRECTORY = 'smug_dance'
-    FPS = 60.0
-    SCALE = 0.6
+    DIRECTORY = 'gta-6-logo'
+    FPS = 40.0
+    SCALE = 0.35
     ANTIALIASING = True
+    LOOP_BACKWARDS = True
     # Pour la position, le chiffre est un pourcentage de l'ecran
-    CENTER_X_PERCENT = 90.0
-    CENTER_Y_PERCENT = 50.0
+    CENTER_X_PERCENT = 88.0
+    CENTER_Y_PERCENT = 84.6
+
+
+class DataSettings(object):
+    FETCH_RELAIS_DATA = True
+    FETCH_HYDROMETRIC_DATA = True
+    SHOW_MINING_INFO = True
 
 
 class WeatherSettings(object):
@@ -276,7 +281,7 @@ def show_peek_loading_screen(largeur, hauteur):
                 while not startup_complete:
                     time.sleep(0.05)
                 break
-            elif loading_progress_status < 100:  # Don't start another loop if we're about to be done
+            elif loading_progress_status < 97:  # Don't start another loop if we're about to be done
                 wait_for_peek_animation = True
                 animation_paused = False
 
@@ -355,7 +360,7 @@ startup_complete = False
 lift_loading_master = False
 loading_progress_status = 0
 loading_speed = 1
-loading_smooth_checkpoints = [25, 28, 68, 69, 70]
+loading_smooth_checkpoints = [25, 28, 55, 69, 70]
 loading_checkpoint = 0
 wait_for_peek_animation = ClockSettings.LOADING_ANIMATION_SELECTION.startswith(
     'peek') and ClockSettings.ENABLE_LOADING_ANIMATION
@@ -467,24 +472,11 @@ loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
 loading_checkpoint += 1
 
 
-def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
-    color_offset_local = uniform(0, 59) if couleur_random else color_offset
-
-    seconde = (seconde + color_offset_local) % 60
-
-    if inverser:
-        seconde = (seconde + 30) % 60
-
-    couleur = liste_calculs_couleurs[int(seconde / 10)](seconde % 10)
-
-    return couleur
-
-
 def get_data(retour_thread, get_forecast=False):
     if ClockSettings.DEBUG_MODE:
         print("SKIPPING REQUESTS FOR DEBUG")
         retour_thread['weather_animation'] = 'pluie'
-        retour_thread['fetching_animation_text'] = None
+        retour_thread['fetching_animation'] = None
         retour_thread['thread_en_cours'] = False
         return True
 
@@ -495,7 +487,7 @@ def get_data(retour_thread, get_forecast=False):
 
     print("Getting data")
 
-    retour_thread['fetching_animation_text'] = None
+    retour_thread['fetching_animation'] = None
 
     temp_actuelle = retour_thread['temperature'][0]
     couleur_temp_actuelle = retour_thread['temperature'][1]['couleur']
@@ -504,6 +496,7 @@ def get_data(retour_thread, get_forecast=False):
     detailed_info_actuelle = retour_thread['detailed_info']
     weather_icon_actuel = retour_thread['weather_icon']
     pistes_soir_actuel = retour_thread['pistes_soir']
+    river_height_actuel = retour_thread['river_height']
     valeur_bitcoin_actuelle = retour_thread['valeur_bitcoin']
     # valeur_litecoin_actuelle = retour_thread['valeur_litecoin']
     # valeur_bitcoin_cash_actuelle = retour_thread['valeur_bitcoin_cash']
@@ -516,7 +509,7 @@ def get_data(retour_thread, get_forecast=False):
         if not attempt_reconnection():
             return True
 
-    retour_thread['fetching_animation_text'] = " "
+    retour_thread['fetching_animation'] = " "
 
     if get_forecast:
         try:
@@ -698,21 +691,6 @@ def get_data(retour_thread, get_forecast=False):
             retour_thread['pourcent_pluie'] = pluie_actuelle
             retour_thread['weather_icon'] = weather_icon_actuel
 
-            if ClockSettings.FETCH_RELAIS_DATA:
-                print('Requesting ski trail data')
-                retour_thread['pistes_soir'] = None
-
-                url_response = urllib.request.urlopen(
-                    'https://www.skirelais.com/montagne/pistes-conditions-de-neige/',
-                    timeout=60,
-                    context=ssl_context)
-
-                data = url_response.read().decode('utf-8').replace('\t', '').replace('\n', '')
-                url_response.close()
-                index = data.find('<td>Ouverture de soir</td>') + len('<td>Ouverture de soir</td>')
-                pistes_soir_actuel = re.search("<span>([\d]+\/[\d]+)<span>", data[index:index + 21]).group(1)
-
-                retour_thread['pistes_soir'] = pistes_soir_actuel
 
         except ValueError:
             retour_thread['detailed_info'] = detailed_info_actuelle
@@ -721,7 +699,6 @@ def get_data(retour_thread, get_forecast=False):
             retour_thread['temperature'][1]['wiggle'] = shaking_etat_actuel
             retour_thread['pourcent_pluie'] = pluie_actuelle
             retour_thread['weather_icon'] = weather_icon_actuel
-            retour_thread['pistes_soir'] = pistes_soir_actuel
 
         except Exception as erreur:
             # raise erreur
@@ -732,7 +709,6 @@ def get_data(retour_thread, get_forecast=False):
             retour_thread['temperature'][1]['wiggle'] = 0
             retour_thread['pourcent_pluie'] = ":("
             retour_thread['weather_icon'] = ''
-            retour_thread['pistes_soir'] = pistes_soir_actuel
             time.sleep(3)
             retour_thread['detailed_info'] = detailed_info_actuelle
             retour_thread['temperature'][0] = temp_actuelle
@@ -744,6 +720,62 @@ def get_data(retour_thread, get_forecast=False):
     # retour_thread['thread_en_cours'] = False
     # get_data(retour_thread, get_forecast=True)
     # return True
+    if DataSettings.FETCH_RELAIS_DATA and get_forecast:
+        try:
+            print('Requesting ski trail data')
+            retour_thread['pistes_soir'] = None
+
+            url_response = urllib.request.urlopen(
+                'https://www.skirelais.com/montagne/pistes-conditions-de-neige/',
+                timeout=60,
+                context=ssl_context)
+
+            data = url_response.read().decode('utf-8').replace('\t', '').replace('\n', '')
+            url_response.close()
+            index = data.find('<td>Ouverture de soir</td>') + len('<td>Ouverture de soir</td>')
+            pistes_soir_actuel = re.search("<span>([\d]+\/[\d]+)<span>", data[index:index + 21]).group(1)
+
+            retour_thread['pistes_soir'] = pistes_soir_actuel
+
+        except Exception as erreur:
+            print(erreur)
+            retour_thread['pistes_soir'] = "Erreur"
+            time.sleep(3)
+            retour_thread['pistes_soir'] = pistes_soir_actuel
+
+    if DataSettings.FETCH_HYDROMETRIC_DATA and get_forecast:
+        try:
+            print('Requesting hydrometric data')
+            retour_thread['river_height'] = None
+
+            response = urllib.request.urlopen("https://inedit-ro.geo.msp.gouv.qc.ca/station_details_readings_api",
+                                              timeout=60, context=ssl_context)
+            the_page = response.read().decode('utf-8').replace('\t', '').replace('\n', '')
+            response.close()
+
+            # Loading the whole string in json.loads actually hangs the main thread so we trim most of the file before handing it over
+            index = the_page.find('{"label":"050904",')
+            the_page = the_page[index:]
+            index = the_page.find(',  {"label"')
+            the_page = the_page[:index]
+            index = the_page.find('"valeurs_niv":')
+            the_page = the_page[index:]
+            index = the_page.find('}],')
+            the_page = the_page[:index + 2]
+
+            data = json.loads('{' + the_page + '}')
+
+            river_height_float = data['valeurs_niv'][-1]['valeur']
+            river_height_actuel = str(round(river_height_float, 2)) + "m"
+
+            retour_thread['river_height'] = river_height_actuel
+
+
+        except Exception as erreur:
+            print(erreur)
+            retour_thread['river_height'] = "Erreur"
+            time.sleep(3)
+            retour_thread['river_height'] = river_height_actuel
 
     try:
         """
@@ -809,6 +841,7 @@ def get_data(retour_thread, get_forecast=False):
 
     except Exception as erreur:
         print(erreur)
+        retour_thread['pistes_soir'] = "Erreur"
         # retour_thread['valeur_litecoin'] = "Erreur"
         retour_thread['valeur_ethereum'] = "Erreur"
         # retour_thread['valeur_bitcoin_cash'] = "Erreur"
@@ -842,17 +875,17 @@ def attempt_reconnection():
 
     delais_attente = 10
     while not internet_access:
-        retour_thread['fetching_animation_text'] = "Erreur"
+        retour_thread['fetching_animation'] = "Erreur"
         os.system("sudo ifconfig wlan0 down")
         os.system("sudo ifconfig wlan0 up")
 
         for it in range(delais_attente, 0, -1):
-            retour_thread['fetching_animation_text'] = "Attente de {secondes}s".format(secondes=str(it))
+            retour_thread['fetching_animation'] = "Attente de {secondes}s".format(secondes=str(it))
             time.sleep(1)
             if not en_fonction:
                 return False
 
-        retour_thread['fetching_animation_text'] = None
+        retour_thread['fetching_animation'] = None
 
         if delais_attente < 45:
             delais_attente += 5
@@ -862,6 +895,40 @@ def attempt_reconnection():
         internet_access = ping_this('http://google.com')
 
     return True
+
+
+def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
+    color_offset_local = uniform(0, 59) if couleur_random else color_offset
+
+    seconde = (seconde + color_offset_local) % 60
+
+    if inverser:
+        seconde = (seconde + 30) % 60
+
+    couleur = liste_calculs_couleurs[int(seconde / 10)](seconde % 10)
+
+    return couleur
+
+
+def generate_color_transitions(color_scheme):
+    lambda_list = []
+
+    for it in range(len(color_scheme)):
+        color_variations = [0, 0, 0]
+        for it_color in range(len(color_scheme[it])):
+            if color_scheme[it][it_color] != color_scheme[(it + 1) % len(color_scheme)][it_color]:
+                color_variations[it_color] = color_scheme[(it + 1) % len(color_scheme)][it_color] - color_scheme[it][
+                    it_color]
+
+        lambda_list.append(lambda seconde, it_lambda=it, variation=color_variations: [
+            color_scheme[it_lambda][0] + int((seconde / 10.0) * variation[0]) if variation[0] else
+            color_scheme[it_lambda][0],
+            color_scheme[it_lambda][1] + int((seconde / 10.0) * variation[1]) if variation[1] else
+            color_scheme[it_lambda][1],
+            color_scheme[it_lambda][2] + int((seconde / 10.0) * variation[2]) if variation[2] else
+            color_scheme[it_lambda][2]])
+
+    return lambda_list
 
 
 def get_text_jour_semaine_couleur():
@@ -903,9 +970,121 @@ def render_spinning_image(vitesse_rpm=33):
     ecran.blit(rotated_surface, rect_image)
 
 
+def load_loop_image(index):
+    global loop_images
+    global status_loading_image
+    global loop_animation_loaded
+
+    if status_loading_image:
+        return True
+
+    status_loading_image = True
+
+    with open(os.path.join(loop_directory, loop_images_filenames[index]), 'rb') as image_file:
+        image_data = image_file.read()
+
+    image_data = io.BytesIO(image_data)
+    temp_image = pygame.image.load(image_data)
+
+    if AnimationLoopSettings.ANTIALIASING:
+        temp_image = pygame.transform.smoothscale(temp_image.convert_alpha(), loop_image_size)
+    else:
+        temp_image = pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult)
+
+    temp_surface = pygame.Surface((temp_image.get_width(), temp_image.get_height()))
+    temp_surface.fill(couleur_fond)
+    temp_surface.blit(temp_image, [0, 0])
+    loop_images[index] = temp_surface.convert()
+    temp_surface = None
+    temp_image = None
+
+    loaded_counter = 0
+    for image in loop_images:
+        if image:
+            loaded_counter += 1
+
+    if loaded_counter == len(loop_images):
+        loop_animation_loaded = True
+
+    if ClockSettings.DEBUG_MODE:
+        retour_thread['pourcent_pluie'] = str(loaded_counter) + '/' + str(len(loop_images))
+
+    status_loading_image = False
+
+
 def render_loop_image():
     loop_time_left = loop_end_time - maintenant
-    pos_image = (loop_images_len - int(AnimationLoopSettings.FPS * loop_time_left.total_seconds())) % loop_images_len
+    pos_image = (loop_images_len - int(
+        AnimationLoopSettings.FPS * loop_time_left.total_seconds()))  # % (loop_images_len + 1)
+
+    if loop_backwards:
+        pos_image = loop_images_len - pos_image
+
+    if not loop_animation_loaded and not peek_animating:
+        pos_image_to_load = pos_image
+        distance_left_image = 0
+        distance_right_image = 0
+
+        # Find nearest image on the left
+        for it_image in range(0, len(loop_images[0:pos_image])):
+            if loop_images[pos_image - it_image]:
+                break
+            distance_left_image += 1
+
+        # Find nearest image on the right
+        for it_image in range(0, len(loop_images[pos_image:]) - 1):
+            if loop_images[pos_image + it_image]:
+                break
+            distance_right_image += 1
+
+        # Choose nearest image
+        if distance_left_image <= distance_right_image or not loop_images[pos_image + distance_right_image]:
+            pos_image -= distance_left_image
+        else:
+            pos_image += distance_right_image
+
+        # Let animation loop once before smoothing out the rest of it unless we're lagging too much
+        if loop_first_time_completed:
+            if not retour_thread['thread_en_cours'] or not loop_wait_for_data_thread:
+                # Find the biggest gap of unloaded frames and load the one in the middle first
+                unload_biggest_gap_size = 0
+                unload_biggest_gap_pos = 0
+                unload_gap_size = 0
+                unload_gap_pos = 0
+
+                # Test - close the gap backwards if looping backwards
+                # for it_image in range(0 if not loop_backwards else len(loop_images) - 1, len(loop_images) if not loop_backwards else - 1, 1 if not loop_backwards else - 1):
+                for it_image in range(0, len(loop_images)):
+                    if loop_images[it_image]:
+                        unload_gap_size = 0
+                    else:
+                        if not unload_gap_size:
+                            unload_gap_pos = it_image
+                        unload_gap_size += 1
+
+                        if unload_gap_size > unload_biggest_gap_size:
+                            unload_biggest_gap_size = unload_gap_size
+                            unload_biggest_gap_pos = unload_gap_pos
+
+                pos_image_to_load = unload_biggest_gap_pos + (unload_biggest_gap_size // 2)
+                """if loop_backwards:
+                    print('------------')
+                    print('pos_image_to_load: ' + str(pos_image_to_load))
+                    print('unload_biggest_gap_size: ' + str(unload_biggest_gap_size))
+                    print('unload_biggest_gap_pos: ' + str(unload_biggest_gap_pos))
+                    print('unload_gap_size: ' + str(unload_gap_size))
+                    print('unload_gap_pos: ' + str(unload_gap_pos))
+                    print(loop_images)"""
+                load_loop_image_thread = Thread(target=load_loop_image, args=([pos_image_to_load]), daemon=True)
+
+                if not status_loading_image:
+                    load_loop_image_thread.start()
+
+        else:
+            # First loop - Each frame here shouldn't be loaded, try to load the current one if we're not loading another one already
+            if not status_loading_image:
+                load_loop_image_thread = Thread(target=load_loop_image, args=([pos_image_to_load]), daemon=True)
+                load_loop_image_thread.start()
 
     rect_image = loop_images[pos_image].get_rect(center=(loop_center_x, loop_center_y))
     ecran.blit(loop_images[pos_image], rect_image)
@@ -1147,9 +1326,6 @@ if ClockSettings.ENABLE_LOADING_ANIMATION:
         pygame.draw.rect(peek_surface, [64, 64, 64],
                          [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur,
                           peek_progress_height])
-else:
-    pygame.draw.rect(peek_surface, [25, 25, 25],
-                     [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur, peek_progress_height])
 
 loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
 loading_checkpoint += 1
@@ -1215,11 +1391,8 @@ couleur_fond = ClockSettings.BACKGROUND_COLOR
 
 couleur_fond_inverse = [255 - couleur_fond[0], 255 - couleur_fond[1], 255 - couleur_fond[2]]
 
-import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, re
+import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, re, io
 from random import randint, uniform
-
-loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
-loading_checkpoint += 1
 
 pygame.font.init()
 
@@ -1269,6 +1442,9 @@ else:
     except Exception:
         brightness = 50
 
+loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+loading_checkpoint += 1
+
 active_color_scheme = 0
 
 color_scheme_path = os.path.join(clock_files_folder, 'color_scheme.txt')
@@ -1281,171 +1457,75 @@ if os.path.exists(color_scheme_path):
     except Exception:
         active_color_scheme = 0
 
-loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
-
-if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
-    try:
-        with open(loading_speed_file_path, "w") as f:
-            f.write(str(loading_smooth_checkpoints[-1] / (time.time() - loading_start_time)))
-    except Exception:
-        if os.path.exists(loading_speed_file_path):
-            os.remove(loading_speed_file_path)
-
-if os.path.exists(os.path.join(clock_files_folder, 'exit_splash.png')):
-    desktop_img = pygame.image.load(os.path.join(clock_files_folder, 'exit_splash.png'))
-    desktop_img = pygame.transform.smoothscale(desktop_img.convert_alpha(), resolution)
-elif desktop_img:
-    desktop_img = pygame.image.fromstring(desktop_img.rgb, desktop_img.size, 'RGB').convert()
-else:
-    desktop_img = pygame.Surface(resolution)
-    desktop_img.fill([0, 0, 0])
-
-# --------------------------------LOADING SPINNING IMAGES--------------------------------- #
-# images_filenames = ['bb0_vinyl_big.png', 'bb1_vinyl_big.png', 'mega_vinyl_big.png']
-# images_filenames = ['bb0_vinyl.png', 'bb1_vinyl.png', 'mega_vinyl.png']
-# images_filenames = ['cake.png', 'cake2.png', 'baloon.png']
-images_filenames = []
-spinning_images = []
-
-shuffle_images = True
-if len(images_filenames) < 2:
-    shuffle_images = False
-
-if len(images_filenames):
-    for index in range(0, len(images_filenames)):
-        status_loading_text = 'Images: ' + str(index + 1) + '/' + str(len(images_filenames))
-
-        temp_image = pygame.image.load(os.path.join(clock_files_folder, images_filenames[index]))
-        spinning_images.append(pygame.transform.scale(temp_image, (int(100 * size_mult), int(100 * size_mult))))
-
-    for it in range(1, randint(1, len(spinning_images))):
-        spinning_images.append(spinning_images.pop(0))
-
-    spinning_image = spinning_images[0]
-# ---------------------------------------------------------------------------------------- #
-loading_progress_status = 70
-next_section_loading_amount = 27
-# -----------------------------------LOADING LOOP IMAGES---------------------------------- #
-if AnimationLoopSettings.ENABLED:
-    loop_time = 0
-    loop_center_x = int(largeur * (AnimationLoopSettings.CENTER_X_PERCENT / 100.0))
-    loop_center_y = int(hauteur * (AnimationLoopSettings.CENTER_Y_PERCENT / 100.0))
-
-    loop_directory = os.path.join(clock_files_folder, os.path.join('animations', AnimationLoopSettings.DIRECTORY))
-    images_filenames = os.listdir(loop_directory)
-    images_filenames.sort()
-
-    loop_images = []
-
-    if AnimationLoopSettings.ANTIALIASING:
-        temp_image = pygame.image.load(os.path.join(loop_directory, images_filenames[0]))
-        image_size = (int(temp_image.get_rect().width * AnimationLoopSettings.SCALE * size_mult),
-                      int(temp_image.get_rect().height * AnimationLoopSettings.SCALE * size_mult))
-
-    for index in range(0, len(images_filenames)):
-        status_loading_text = 'Images d\'animation: ' + str(index + 1) + '/' + str(len(images_filenames))
-
-        temp_image = pygame.image.load(os.path.join(loop_directory, images_filenames[index]))
-
-        if AnimationLoopSettings.ANTIALIASING:
-            temp_image = pygame.transform.smoothscale(temp_image.convert_alpha(), image_size)
-        else:
-            temp_image = pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult)
-
-        temp_surface = pygame.Surface((temp_image.get_width(), temp_image.get_height()))
-        temp_surface.fill(couleur_fond)
-        temp_surface.blit(temp_image, [0, 0])
-        loop_images.append(temp_surface.convert())
-        loading_progress_status += next_section_loading_amount / len(images_filenames)
-
-        if not ClockSettings.ENABLE_LOADING_ANIMATION:
-            if index < len(images_filenames) - 1:
-                pygame.draw.rect(ecran, [64, 64, 64], [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height,
-                                                       int(hauteur * (index + 1) / len(images_filenames)),
-                                                       peek_progress_height])
-            else:
-                pygame.draw.rect(peek_surface, [64, 64, 64],
-                                 [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur,
-                                  peek_progress_height])
-                ecran.blit(peek_surface, [0, 0])
-
-            pygame.display.update()
-
-    temp_surface = None
-    temp_image = None
-    loop_images_len = len(loop_images)
-    loop_time = loop_images_len / AnimationLoopSettings.FPS
-# ---------------------------------------------------------------------------------------- #
-loading_progress_status = 97
-next_section_loading_amount = 3
-# -----------------------------------LOADING WEATHER ICONS---------------------------------- #
-weather_directory = os.path.join(clock_files_folder, 'weather_icons')
-images_filenames = os.listdir(weather_directory)
-images_filenames.sort()
-
-weather_icons = {}
-
-for index in range(0, len(images_filenames)):
-    status_loading_text = 'Icônes de météo: ' + str(index + 1) + '/' + str(len(images_filenames))
-
-    temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
-    # weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
-    image_size = (
-        int(temp_image.get_rect().width * 0.6 * size_mult), int(temp_image.get_rect().height * 0.6 * size_mult))
-    weather_icons[images_filenames[index]] = pygame.transform.smoothscale(temp_image.convert_alpha(),
-                                                                          image_size).convert_alpha()
-    loading_progress_status += next_section_loading_amount / len(images_filenames)
-# ---------------------------------------------------------------------------------------- #
-loading_progress_status = 100
-
 color_schemes = [
     # Rainbow
-    [lambda seconde: [255, int((seconde / 10.0) * 255), 0],
-     lambda seconde: [255 - int((seconde / 10.0) * 255), 255, 0],
-     lambda seconde: [0, 255, int((seconde / 10.0) * 255)],
-     lambda seconde: [0, 255 - int((seconde / 10.0) * 255), 255],
-     lambda seconde: [int((seconde / 10.0) * 255), 0, 255],
-     lambda seconde: [255, 0, 255 - int((seconde / 10.0) * 255)]],
+    [[255, 0, 0],
+     [255, 255, 0],
+     [0, 255, 0],
+     [0, 255, 255],
+     [0, 0, 255],
+     [255, 0, 255]],
     # Vibrant-Peach
-    [lambda seconde: [255, 50, 0],
-     lambda seconde: [255, 50 + int((seconde / 10.0) * 50), 0],
-     lambda seconde: [255, 100, 0],
-     lambda seconde: [255, 100 + int((seconde / 10.0) * 100), 0],
-     lambda seconde: [255, 200, 0],
-     lambda seconde: [255, 200 - int((seconde / 10.0) * 150), 0]],
+    [[255, 50, 0],
+     [255, 50, 0],
+     [255, 100, 0],
+     [255, 100, 0],
+     [255, 200, 0],
+     [255, 200, 0]],
     # Cyan-Purple-Fuchsia
-    [lambda seconde: [255 - int((seconde / 10.0) * 255), int((seconde / 10.0) * 255),
-                      100 + int((seconde / 10.0) * 155)],
-     lambda seconde: [0, 255, 255],
-     lambda seconde: [int((seconde / 10.0) * 128), 255 - int((seconde / 10.0) * 255), 255],
-     lambda seconde: [128, 0, 255],
-     lambda seconde: [127 + int((seconde / 10.0) * 128), 0, 255 - int((seconde / 10.0) * 155)],
-     lambda seconde: [255, 0, 100]],
+    [[255, 0, 100],
+     [0, 255, 255],
+     [0, 255, 255],
+     [128, 0, 255],
+     [128, 0, 255],
+     [255, 0, 100]],
     # Steel
-    [lambda seconde: [50 + int((seconde / 10.0) * 50), 50 + int((seconde / 10.0) * 50),
-                      50 + int((seconde / 10.0) * 50)],
-     lambda seconde: [100 + int((seconde / 10.0) * 50), 100 + int((seconde / 10.0) * 50),
-                      100 + int((seconde / 10.0) * 50)],
-     lambda seconde: [150 + int((seconde / 10.0) * 50), 150 + int((seconde / 10.0) * 50),
-                      150 + int((seconde / 10.0) * 50)],
-     lambda seconde: [200 - int((seconde / 10.0) * 50), 200 - int((seconde / 10.0) * 50),
-                      200 - int((seconde / 10.0) * 50)],
-     lambda seconde: [150 - int((seconde / 10.0) * 50), 150 - int((seconde / 10.0) * 50),
-                      150 - int((seconde / 10.0) * 50)],
-     lambda seconde: [100 - int((seconde / 10.0) * 50), 100 - int((seconde / 10.0) * 50),
-                      100 - int((seconde / 10.0) * 50)]],
+    [[50, 50, 50],
+     [100, 100, 100],
+     [150, 150, 150],
+     [200, 200, 200],
+     [150, 150, 150],
+     [100, 100, 100]],
     # Wine-Red-and-White
-    [lambda seconde: [255, 255, 100 + int((seconde / 10.0) * 100)],
-     lambda seconde: [255 - int((seconde / 10.0) * 55), 255 - int((seconde / 10.0) * 255),
-                      200 - int((seconde / 10.0) * 200)],
-     lambda seconde: [200 - int((seconde / 10.0) * 100), 0, 0],
-     lambda seconde: [100 + int((seconde / 10.0) * 100), 0, 0],
-     lambda seconde: [200 + int((seconde / 10.0) * 55), int((seconde / 10.0) * 255), int((seconde / 10.0) * 200)],
-     lambda seconde: [255, 255, 200 - int((seconde / 10.0) * 100)]]]
+    [[255, 255, 100],
+     [255, 255, 200],
+     [200, 0, 0],
+     [100, 0, 0],
+     [200, 0, 0],
+     [255, 255, 200]],
+    # GTA-6
+    [[50, 95, 210],
+     [165, 95, 210],
+     [255, 115, 170],
+     [245, 135, 115],
+     [215, 125, 60],
+     [165, 95, 210]],
+    # Reece-1
+    [[253, 3, 99],
+     [204, 9, 93],
+     [156, 16, 87],
+     [107, 22, 80],
+     [59, 29, 74],
+     [10, 35, 68]],
+    # Reece-2
+    [[142, 202, 230],
+     [33, 158, 188],
+     [2, 48, 71],
+     [255, 183, 3],
+     [253, 158, 2],
+     [251, 133, 0]],
+    # Reece-3
+    [[0, 0, 0],
+     [31, 42, 45],
+     [0, 128, 170],
+     [220, 230, 232],
+     [255, 255, 255],
+     [255, 208, 39]]]
+
+for it in range(len(color_schemes)):
+    color_schemes[it] = generate_color_transitions(color_schemes[it])
 
 liste_calculs_couleurs = color_schemes[active_color_scheme]
-# liste_calculs_couleurs = color_schemes.pop()
-# color_schemes.insert(0, liste_calculs_couleurs)
 
 color_offset = uniform(0, 59)
 
@@ -1590,6 +1670,131 @@ menu_surface.blit(color_switch_surfaces[active_color_scheme][0],
 
 # ---------------------------------------------------------------------------------------- #
 
+if os.path.exists(os.path.join(clock_files_folder, 'exit_splash.png')):
+    desktop_img = pygame.image.load(os.path.join(clock_files_folder, 'exit_splash.png'))
+    desktop_img = pygame.transform.smoothscale(desktop_img.convert_alpha(), resolution)
+elif desktop_img:
+    desktop_img = pygame.image.fromstring(desktop_img.rgb, desktop_img.size, 'RGB').convert()
+else:
+    desktop_img = pygame.Surface(resolution)
+    desktop_img.fill([0, 0, 0])
+
+if ClockSettings.ENABLE_LOADING_ANIMATION and ClockSettings.LOADING_ANIMATION_SELECTION.startswith('peek'):
+    try:
+        with open(loading_speed_file_path, "w") as f:
+            f.write(str(loading_smooth_checkpoints[-1] / (time.time() - loading_start_time)))
+    except Exception:
+        if os.path.exists(loading_speed_file_path):
+            os.remove(loading_speed_file_path)
+# --------------------------------LOADING SPINNING IMAGES--------------------------------- #
+# images_filenames = ['bb0_vinyl_big.png', 'bb1_vinyl_big.png', 'mega_vinyl_big.png']
+# images_filenames = ['bb0_vinyl.png', 'bb1_vinyl.png', 'mega_vinyl.png']
+# images_filenames = ['cake.png', 'cake2.png', 'baloon.png']
+images_filenames = []
+spinning_images = []
+
+shuffle_images = True
+if len(images_filenames) < 2:
+    shuffle_images = False
+
+if len(images_filenames):
+    for index in range(0, len(images_filenames)):
+        status_loading_text = 'Images: ' + str(index + 1) + '/' + str(len(images_filenames))
+
+        temp_image = pygame.image.load(os.path.join(clock_files_folder, images_filenames[index]))
+        spinning_images.append(pygame.transform.scale(temp_image, (int(100 * size_mult), int(100 * size_mult))))
+
+    for it in range(1, randint(1, len(spinning_images))):
+        spinning_images.append(spinning_images.pop(0))
+
+    spinning_image = spinning_images[0]
+# ---------------------------------------------------------------------------------------- #
+loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
+next_section_loading_amount = 27
+# -----------------------------------LOADING LOOP IMAGES---------------------------------- #
+if AnimationLoopSettings.ENABLED:
+    loop_time = 0
+    loop_center_x = int(largeur * (AnimationLoopSettings.CENTER_X_PERCENT / 100.0))
+    loop_center_y = int(hauteur * (AnimationLoopSettings.CENTER_Y_PERCENT / 100.0))
+    loop_backwards = False
+    loop_animation_loaded = False
+    loop_first_time_completed = False
+    loop_wait_for_data_thread = False
+
+    loop_directory = os.path.join(clock_files_folder, os.path.join('animations', AnimationLoopSettings.DIRECTORY))
+    loop_images_filenames = os.listdir(loop_directory)
+    loop_images_filenames.sort()
+
+    loop_images = []
+    status_loading_image = False
+
+    if AnimationLoopSettings.ANTIALIASING:
+        temp_image = pygame.image.load(os.path.join(loop_directory, loop_images_filenames[0]))
+        loop_image_size = (int(temp_image.get_rect().width * AnimationLoopSettings.SCALE * size_mult),
+                           int(temp_image.get_rect().height * AnimationLoopSettings.SCALE * size_mult))
+
+    for index in range(0, len(loop_images_filenames)):
+        status_loading_text = 'Images d\'animation: ' + str(index + 1) + '/' + str(len(loop_images_filenames))
+
+        if index == 0:
+            temp_image = pygame.image.load(os.path.join(loop_directory, loop_images_filenames[index]))
+
+            if AnimationLoopSettings.ANTIALIASING:
+                temp_image = pygame.transform.smoothscale(temp_image.convert_alpha(), loop_image_size)
+            else:
+                temp_image = pygame.transform.rotozoom(temp_image, 0, AnimationLoopSettings.SCALE * size_mult)
+
+            temp_surface = pygame.Surface((temp_image.get_width(), temp_image.get_height()))
+            temp_surface.fill(couleur_fond)
+            temp_surface.blit(temp_image, [0, 0])
+            loop_images.append(temp_surface.convert())
+        else:
+            loop_images.append(None)
+        loading_progress_status += next_section_loading_amount / len(loop_images_filenames)
+
+        if not ClockSettings.ENABLE_LOADING_ANIMATION and False:
+            if index < len(loop_images_filenames) - 1:
+                pygame.draw.rect(ecran, [64, 64, 64], [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height,
+                                                       int(hauteur * (index + 1) / len(loop_images_filenames)),
+                                                       peek_progress_height])
+            else:
+                pygame.draw.rect(peek_surface, [64, 64, 64],
+                                 [int(largeur / 2 - hauteur / 2), hauteur - peek_progress_height, hauteur,
+                                  peek_progress_height])
+                ecran.blit(peek_surface, [0, 0])
+
+            pygame.display.update()
+
+    temp_surface = None
+    temp_image = None
+    loop_rect = loop_images[0].get_rect(center=(loop_center_x, loop_center_y))
+    loop_images_len = len(loop_images) - 1
+    loop_time = loop_images_len / AnimationLoopSettings.FPS
+else:
+    loop_rect = pygame.Rect([largeur, hauteur, 1, 1])
+# ---------------------------------------------------------------------------------------- #
+loading_progress_status = 97
+next_section_loading_amount = 3
+# -----------------------------------LOADING WEATHER ICONS---------------------------------- #
+weather_directory = os.path.join(clock_files_folder, 'weather_icons')
+images_filenames = os.listdir(weather_directory)
+images_filenames.sort()
+
+weather_icons = {}
+
+for index in range(0, len(images_filenames)):
+    status_loading_text = 'Icônes de météo: ' + str(index + 1) + '/' + str(len(images_filenames))
+
+    temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
+    # weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
+    image_size = (
+        int(temp_image.get_rect().width * 0.6 * size_mult), int(temp_image.get_rect().height * 0.6 * size_mult))
+    weather_icons[images_filenames[index]] = pygame.transform.smoothscale(temp_image.convert_alpha(),
+                                                                          image_size).convert_alpha()
+    loading_progress_status += next_section_loading_amount / len(images_filenames)
+# ---------------------------------------------------------------------------------------- #
+loading_progress_status = 100
+
 maintenant = datetime.datetime.now()
 
 loop_end_time = maintenant
@@ -1676,7 +1881,10 @@ text_dict = {'temps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_r
                              'wiggle_rect': texte_rect},
              'pourcent_pluie': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              'pistes_soir': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'SKI': {'text': 'SKI', 'surface': font_17.render('SKI', True, couleur_fond_inverse), 'rect': texte_rect},
+             'SKI': {'text': 'Ski', 'surface': font_17.render('Ski', True, couleur_fond_inverse), 'rect': texte_rect},
+             'river_height': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
+             'river_label': {'text': 'Rivière', 'surface': font_17.render('Rivière', True, couleur_fond_inverse),
+                             'rect': texte_rect},
              'ethermine_data': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              'valeur_bitcoin': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              'BTC': {'text': 'BTC', 'surface': font_17.render('BTC', True, couleur_fond_inverse), 'rect': texte_rect},
@@ -1693,6 +1901,8 @@ text_dict = {'temps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_r
              'calculated_fps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              }
 
+current_info_text = None
+previous_info_text = None
 # seconde_surfaces = {}
 
 # for it in range(0, 360):
@@ -1715,12 +1925,13 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C",
                  'detailed_info': "Conditions actuelles",
                  'weather_icon': "10.png" if ClockSettings.DEBUG_MODE else "",
                  'pistes_soir': "##/##",
+                 'river_height': "##.##m",
                  'valeur_bitcoin': "####.##$",
                  # 'valeur_litecoin': "##.##$",
                  # 'valeur_bitcoin_cash': "###.##$",
                  'valeur_ethereum': "###.##$",
                  'ethermine_data': '###.##$ - ##%',
-                 'fetching_animation_text': " ",
+                 'fetching_animation': " ",
                  'thread_en_cours': False,
                  'weather_animation': '',
                  'city_id': 's0000620',
@@ -2333,106 +2544,161 @@ while en_fonction:
     if text_dict['pourcent_pluie']['text'] != ' ':
         ecran.blit(text_dict['pourcent_pluie']['surface'], text_dict['pourcent_pluie']['rect'])
 
-    if ClockSettings.SHOW_MINING_INFO:
-        if (retour_thread['ethermine_data'] or text_anim_frames[text_anim_frame]) != text_dict['ethermine_data'][
+    # Lower left corner info
+    current_info_text = None
+    previous_info_text = None
+
+    if DataSettings.SHOW_MINING_INFO:
+        previous_info_text = current_info_text
+        current_info_text = 'ethermine_data'
+        if (retour_thread[current_info_text] or text_anim_frames[text_anim_frame]) != text_dict[current_info_text][
             'text']:
-            text_dict['ethermine_data']['text'] = retour_thread['ethermine_data'] or text_anim_frames[text_anim_frame]
+            text_dict[current_info_text]['text'] = retour_thread[current_info_text] or text_anim_frames[text_anim_frame]
 
-            if retour_thread['ethermine_data']:
-                text_dict['ethermine_data']['surface'] = font_17.render(text_dict['ethermine_data']['text'], True,
-                                                                        couleur_fond_inverse)
+            if retour_thread[current_info_text]:
+                text_dict[current_info_text]['surface'] = font_17.render(text_dict[current_info_text]['text'], True,
+                                                                         couleur_fond_inverse)
             else:
-                text_dict['ethermine_data']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+                text_dict[current_info_text]['surface'] = text_anim_surfaces['17'][text_anim_frame]
 
-            text_dict['ethermine_data']['rect'] = text_dict['ethermine_data']['surface'].get_rect()
-            text_dict['ethermine_data']['rect'].bottom = hauteur
-            text_dict['ethermine_data']['rect'].left = int(2 * size_mult)
-        ecran.blit(text_dict['ethermine_data']['surface'], text_dict['ethermine_data']['rect'])
+            text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect()
+            text_dict[current_info_text]['rect'].bottom = hauteur
+            text_dict[current_info_text]['rect'].left = int(2 * size_mult)
+        ecran.blit(text_dict[current_info_text]['surface'], text_dict[current_info_text]['rect'])
 
-    if (retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_ethereum']['text']:
-        text_dict['valeur_ethereum']['text'] = retour_thread['valeur_ethereum'] or text_anim_frames[text_anim_frame]
+    previous_info_text = current_info_text
+    current_info_text = 'valeur_ethereum'
+    if (retour_thread[current_info_text] or text_anim_frames[text_anim_frame]) != text_dict[current_info_text]['text']:
+        text_dict[current_info_text]['text'] = retour_thread[current_info_text] or text_anim_frames[text_anim_frame]
 
-        if retour_thread['valeur_ethereum']:
-            text_dict['valeur_ethereum']['surface'] = font_17.render(text_dict['valeur_ethereum']['text'], True,
+        if retour_thread[current_info_text]:
+            text_dict[current_info_text]['surface'] = font_17.render(text_dict[current_info_text]['text'], True,
                                                                      couleur_fond_inverse)
         else:
-            text_dict['valeur_ethereum']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+            text_dict[current_info_text]['surface'] = text_anim_surfaces['17'][text_anim_frame]
 
-        text_dict['valeur_ethereum']['rect'] = text_dict['valeur_ethereum']['surface'].get_rect()
-        if ClockSettings.SHOW_MINING_INFO:
-            text_dict['valeur_ethereum']['rect'] = text_dict['valeur_ethereum']['surface'].get_rect(
+        text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect()
+        if DataSettings.SHOW_MINING_INFO:
+            text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect(
                 center=(text_dict['ethermine_data']['rect'].center[0], 0))
-            text_dict['valeur_ethereum']['rect'].bottom = text_dict['ethermine_data']['rect'].top - int(2 * size_mult)
+            text_dict[current_info_text]['rect'].bottom = text_dict['ethermine_data']['rect'].top - int(2 * size_mult)
         else:
-            text_dict['valeur_ethereum']['rect'].left = int(2 * size_mult)
-            text_dict['valeur_ethereum']['rect'].bottom = hauteur
+            text_dict[current_info_text]['rect'].left = int(2 * size_mult)
+            text_dict[current_info_text]['rect'].bottom = hauteur
 
-        texte_top = text_dict['valeur_ethereum']['rect'].top
+        texte_top = text_dict[current_info_text]['rect'].top
         text_dict['ETH']['rect'] = text_dict['ETH']['surface'].get_rect(
-            center=(text_dict['valeur_ethereum']['rect'].center[0], 0))
+            center=(text_dict[current_info_text]['rect'].center[0], 0))
         text_dict['ETH']['rect'].bottom = texte_top
-    ecran.blit(text_dict['valeur_ethereum']['surface'], text_dict['valeur_ethereum']['rect'])
-    ecran.blit(text_dict['ETH']['surface'], text_dict['ETH']['rect'])
 
-    if (retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]) != text_dict['valeur_bitcoin']['text']:
-        text_dict['valeur_bitcoin']['text'] = retour_thread['valeur_bitcoin'] or text_anim_frames[text_anim_frame]
+    previous_info_text = current_info_text
+    current_info_text = 'ETH'
+    ecran.blit(text_dict[previous_info_text]['surface'], text_dict[previous_info_text]['rect'])
+    ecran.blit(text_dict[current_info_text]['surface'], text_dict[current_info_text]['rect'])
 
-        if retour_thread['valeur_bitcoin']:
-            text_dict['valeur_bitcoin']['surface'] = font_17.render(text_dict['valeur_bitcoin']['text'], True,
-                                                                    couleur_fond_inverse)
+    previous_info_text = current_info_text
+    current_info_text = 'valeur_bitcoin'
+    if (retour_thread[current_info_text] or text_anim_frames[text_anim_frame]) != text_dict[current_info_text]['text']:
+        text_dict[current_info_text]['text'] = retour_thread[current_info_text] or text_anim_frames[text_anim_frame]
+
+        if retour_thread[current_info_text]:
+            text_dict[current_info_text]['surface'] = font_17.render(text_dict[current_info_text]['text'], True,
+                                                                     couleur_fond_inverse)
         else:
-            text_dict['valeur_bitcoin']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+            text_dict[current_info_text]['surface'] = text_anim_surfaces['17'][text_anim_frame]
 
-        text_dict['valeur_bitcoin']['rect'] = text_dict['valeur_bitcoin']['surface'].get_rect()
+        text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect()
         texte_top = text_dict['ETH']['rect'].top - (2 * size_mult)
-        text_dict['valeur_bitcoin']['rect'].left = int(2 * size_mult)
-        text_dict['valeur_bitcoin']['rect'].bottom = int(texte_top)
+        text_dict[current_info_text]['rect'].left = int(2 * size_mult)
+        text_dict[current_info_text]['rect'].bottom = int(texte_top)
 
         text_dict['BTC']['rect'] = text_dict['BTC']['surface'].get_rect(
-            center=(text_dict['valeur_bitcoin']['rect'].center[0], 0))
-        text_dict['BTC']['rect'].bottom = text_dict['valeur_bitcoin']['rect'].top
-    ecran.blit(text_dict['valeur_bitcoin']['surface'], text_dict['valeur_bitcoin']['rect'])
-    ecran.blit(text_dict['BTC']['surface'], text_dict['BTC']['rect'])
+            center=(text_dict[current_info_text]['rect'].center[0], 0))
+        text_dict['BTC']['rect'].bottom = text_dict[current_info_text]['rect'].top
 
-    if ClockSettings.FETCH_RELAIS_DATA:
-        if (retour_thread['pistes_soir'] or text_anim_frames[text_anim_frame]) != text_dict['pistes_soir']['text']:
-            text_dict['pistes_soir']['text'] = retour_thread['pistes_soir'] or text_anim_frames[text_anim_frame]
+    previous_info_text = current_info_text
+    current_info_text = 'BTC'
+    ecran.blit(text_dict[previous_info_text]['surface'], text_dict[previous_info_text]['rect'])
+    ecran.blit(text_dict[current_info_text]['surface'], text_dict[current_info_text]['rect'])
 
-            if retour_thread['pistes_soir']:
-                text_dict['pistes_soir']['surface'] = font_17.render(text_dict['pistes_soir']['text'], True,
-                                                                     couleur_fond_inverse)
+    if DataSettings.FETCH_HYDROMETRIC_DATA:
+        previous_info_text = current_info_text
+        current_info_text = 'river_height'
+        if (retour_thread[current_info_text] or text_anim_frames[text_anim_frame]) != text_dict[current_info_text][
+            'text']:
+            text_dict[current_info_text]['text'] = retour_thread[current_info_text] or text_anim_frames[text_anim_frame]
+
+            if retour_thread[current_info_text]:
+                text_dict[current_info_text]['surface'] = font_17.render(text_dict[current_info_text]['text'], True,
+                                                                         couleur_fond_inverse)
             else:
-                text_dict['pistes_soir']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+                text_dict[current_info_text]['surface'] = text_anim_surfaces['17'][text_anim_frame]
 
-            text_dict['pistes_soir']['rect'] = text_dict['pistes_soir']['surface'].get_rect()
-            text_dict['pistes_soir']['rect'].left = int(2 * size_mult)
-            text_dict['pistes_soir']['rect'].bottom = text_dict['BTC']['rect'].top - int(2 * size_mult)
+            text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect()
+            text_dict['river_label']['rect'] = text_dict['river_label']['surface'].get_rect()
+
+            if text_dict[current_info_text]['rect'].width > text_dict['river_label']['rect'].width:
+                text_dict[current_info_text]['rect'].left = int(2 * size_mult)
+                text_dict['river_label']['rect'] = text_dict['river_label']['surface'].get_rect(
+                    center=(text_dict[current_info_text]['rect'].center[0], 0))
+            else:
+                text_dict['river_label']['rect'].left = int(2 * size_mult)
+                text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect(
+                    center=(text_dict['river_label']['rect'].center[0], 0))
+
+            text_dict[current_info_text]['rect'].bottom = text_dict[previous_info_text]['rect'].top - int(2 * size_mult)
+            text_dict['river_label']['rect'].bottom = text_dict[current_info_text]['rect'].top
+
+        previous_info_text = current_info_text
+        current_info_text = 'river_label'
+        ecran.blit(text_dict[previous_info_text]['surface'], text_dict[previous_info_text]['rect'])
+        ecran.blit(text_dict[current_info_text]['surface'], text_dict[current_info_text]['rect'])
+
+    if DataSettings.FETCH_RELAIS_DATA:
+        previous_info_text = current_info_text
+        current_info_text = 'pistes_soir'
+        if (retour_thread[current_info_text] or text_anim_frames[text_anim_frame]) != text_dict[current_info_text][
+            'text']:
+            text_dict[current_info_text]['text'] = retour_thread[current_info_text] or text_anim_frames[text_anim_frame]
+
+            if retour_thread[current_info_text]:
+                text_dict[current_info_text]['surface'] = font_17.render(text_dict[current_info_text]['text'], True,
+                                                                         couleur_fond_inverse)
+            else:
+                text_dict[current_info_text]['surface'] = text_anim_surfaces['17'][text_anim_frame]
+
+            text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect()
+            text_dict[current_info_text]['rect'].left = int(2 * size_mult)
+            text_dict[current_info_text]['rect'].bottom = text_dict[previous_info_text]['rect'].top - int(2 * size_mult)
             text_dict['SKI']['rect'] = text_dict['SKI']['surface'].get_rect(
-                center=(text_dict['pistes_soir']['rect'].center[0], 0))
-            text_dict['SKI']['rect'].bottom = text_dict['pistes_soir']['rect'].top
-        ecran.blit(text_dict['pistes_soir']['surface'], text_dict['pistes_soir']['rect'])
-        ecran.blit(text_dict['SKI']['surface'], text_dict['SKI']['rect'])
+                center=(text_dict[current_info_text]['rect'].center[0], 0))
+            text_dict['SKI']['rect'].bottom = text_dict[current_info_text]['rect'].top
 
-    if (retour_thread['fetching_animation_text'] or text_anim_frames[text_anim_frame]) != \
-            text_dict['fetching_animation']['text']:
-        text_dict['fetching_animation']['text'] = retour_thread['fetching_animation_text'] or text_anim_frames[
+        previous_info_text = current_info_text
+        current_info_text = 'SKI'
+        ecran.blit(text_dict[previous_info_text]['surface'], text_dict[previous_info_text]['rect'])
+        ecran.blit(text_dict[current_info_text]['surface'], text_dict[current_info_text]['rect'])
+
+    previous_info_text = current_info_text
+    current_info_text = 'fetching_animation'
+    if (retour_thread[current_info_text] or text_anim_frames[text_anim_frame]) != \
+            text_dict[current_info_text]['text']:
+        text_dict[current_info_text]['text'] = retour_thread[current_info_text] or text_anim_frames[
             text_anim_frame]
 
-        if retour_thread['fetching_animation_text']:
-            text_dict['fetching_animation']['surface'] = font_17.render(text_dict['fetching_animation']['text'], True,
-                                                                        couleur_fond_inverse)
+        if retour_thread[current_info_text]:
+            text_dict[current_info_text]['surface'] = font_17.render(text_dict[current_info_text]['text'], True,
+                                                                     couleur_fond_inverse)
         else:
-            text_dict['fetching_animation']['surface'] = text_anim_surfaces['17'][text_anim_frame]
+            text_dict[current_info_text]['surface'] = text_anim_surfaces['17'][text_anim_frame]
 
-        text_dict['fetching_animation']['rect'] = text_dict['fetching_animation']['surface'].get_rect()
-        text_dict['fetching_animation']['rect'].left = int(2 * size_mult)
-        if ClockSettings.FETCH_RELAIS_DATA:
-            text_dict['fetching_animation']['rect'].bottom = text_dict['SKI']['rect'].top - int(20 * size_mult)
-        else:
-            text_dict['fetching_animation']['rect'].bottom = text_dict['BTC']['rect'].top - int(20 * size_mult)
+        center_y = text_dict['pourcent_pluie']['rect'].bottom + (
+                    text_dict[previous_info_text]['rect'].top - text_dict['pourcent_pluie']['rect'].bottom) / 2
+        text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect(center=(0, center_y))
+        text_dict[current_info_text]['rect'].left = int(2 * size_mult)
 
-    if text_dict['fetching_animation']['text'] != ' ':
-        ecran.blit(text_dict['fetching_animation']['surface'], text_dict['fetching_animation']['rect'])
+    if text_dict[current_info_text]['text'] != ' ':
+        ecran.blit(text_dict[current_info_text]['surface'], text_dict[current_info_text]['rect'])
 
     if noms_jours_semaine[num_jour_semaine] != text_dict['noms_jours_semaine']['text'] or text_jour_semaine_couleur != \
             text_dict['noms_jours_semaine']['color']:
@@ -2522,14 +2788,25 @@ while en_fonction:
         texte_top = text_dict['titre_countdown']['rect'].top
         text_dict['calculated_fps']['rect'] = text_dict['calculated_fps']['surface'].get_rect()
         text_dict['calculated_fps']['rect'].right = int(largeur - (2 * size_mult))
-        text_dict['calculated_fps']['rect'].bottom = texte_top if ClockSettings.ENABLE_COUNTDOWN_TIMER else hauteur
+        # text_dict['calculated_fps']['rect'].bottom = texte_top if ClockSettings.ENABLE_COUNTDOWN_TIMER else hauteur
+        text_dict['calculated_fps']['rect'].bottom = loop_rect.top
     ecran.blit(text_dict['calculated_fps']['surface'], text_dict['calculated_fps']['rect'])
 
     # render_spinning_image(vitesse_rpm=15)
 
     if AnimationLoopSettings.ENABLED:
-        if loop_end_time <= maintenant:
+        if peek_animating:
             loop_end_time = maintenant + datetime.timedelta(seconds=loop_time)
+        else:
+            if loop_end_time <= maintenant:
+                loop_end_time = maintenant + datetime.timedelta(seconds=loop_time)
+
+                if not first_frame:
+                    if AnimationLoopSettings.LOOP_BACKWARDS:
+                        loop_backwards = not loop_backwards
+
+                    if not loop_first_time_completed:
+                        loop_first_time_completed = True
 
         render_loop_image()
 
@@ -2595,6 +2872,9 @@ while en_fonction:
 
     frame_counter += 1
     if changement_seconde:
+        if frame_counter < 15 and retour_thread['thread_en_cours']:
+            loop_wait_for_data_thread = True
+
         if not toggle_menu and not color_wheel_active:
             pygame.mouse.set_visible(False)
         calculated_fps = '{} fps'.format(frame_counter)
@@ -2635,6 +2915,7 @@ while peek_radius <= peek_radius_limit:
     peek_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [position_souris[0], position_souris[1]],
                                    peek_radius + int(5 * size_mult))
     pygame.draw.circle(peek_surface, [100, 50, 0], [position_souris[0], position_souris[1]], peek_radius)
+    ecran.set_clip(peek_rect)
 
     for rect in peek_blit_list:
         if peek_radius ** 2 >= a_squared:
