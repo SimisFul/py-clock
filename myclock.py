@@ -33,6 +33,8 @@ class AnimationLoopSettings(object):
     # Pour la position, le chiffre est un pourcentage de l'ecran
     CENTER_X_PERCENT = 88.0
     CENTER_Y_PERCENT = 84.6
+    # This sticks the gif to the bottom right corner of the screen. CENTER_X_PERCENT and CENTER_Y_PERCENT are ignored.
+    BOTTOM_RIGHT_CORNER = True
 
 
 class DataSettings(object):
@@ -327,6 +329,7 @@ if ClockSettings.ANDROID_MODE:
     print(
         'ANDROID_MODE enabled, this feature is meant to be used when this clock is used inside a buildozer made application.')
     ClockSettings.ENABLE_LOADING_ANIMATION = False
+    DisplaySettings.FULLSCREEN = True
 
 if ClockSettings.ENABLE_LOADING_ANIMATION:
     import tkinter as tk
@@ -480,7 +483,8 @@ def get_data(retour_thread, get_forecast=False):
         retour_thread['thread_en_cours'] = False
         return True
 
-    if retour_thread['thread_en_cours']:
+    # Only one data thread at a time or finish loading the loop animation before getting data again, lets the thread run once at boot
+    if retour_thread['thread_en_cours'] or (loop_first_time_completed and not loop_animation_loaded):
         return True
     else:
         retour_thread['thread_en_cours'] = True
@@ -568,9 +572,9 @@ def get_data(retour_thread, get_forecast=False):
                     # Automatique
 
                     # Québec
-                    # dict_data = xmltodict.parse(b'<?xml version=\'1.0\' encoding=\'ISO-8859-1\'?>\n <siteData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://dd.meteo.gc.ca/citypage_weather/schema/site.xsd">\n <license>https://dd.meteo.gc.ca/doc/LICENCE_GENERAL.txt</license>\n <dateTime name="xmlCreation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>16</hour>\n <minute>37</minute>\n <timeStamp>20220321163700</timeStamp>\n <textSummary>21 mars 2022 16h37 UTC</textSummary>\n </dateTime>\n <dateTime name="xmlCreation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>12</hour>\n <minute>37</minute>\n <timeStamp>20220321123700</timeStamp>\n <textSummary>21 mars 2022 12h37 HAE</textSummary>\n </dateTime>\n <location>\n <continent>Am\xe9rique du Nord</continent>\n <country code="ca">Canada</country>\n <province code="qc">Qu\xe9bec</province>\n <name code="s0000620" lat="46.82N" lon="71.22O">Qu\xe9bec</name>\n <region>Qu\xe9bec</region>\n </location>\n <warnings/>\n <currentConditions>\n <station code="yqb" lat="46.79N" lon="71.39O">A\xe9roport int. Lesage de Qu\xe9bec</station>\n <dateTime name="observation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>16</hour>\n <minute>32</minute>\n <timeStamp>20220321163200</timeStamp>\n <textSummary>21 mars 2022 16h32 UTC</textSummary>\n </dateTime>\n <dateTime name="observation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>12</hour>\n <minute>32</minute>\n <timeStamp>20220321123200</timeStamp>\n <textSummary>21 mars 2022 12h32 HAE</textSummary>\n </dateTime>\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="gif">03</iconCode>\n <temperature unitType="metric" units="C">-25.4</temperature>\n <dewpoint unitType="metric" units="C">-4.8</dewpoint>\n <pressure unitType="metric" units="kPa" change="0.01" tendency="\xe0 la baisse">101.0</pressure>\n <visibility unitType="metric" units="km">48.3</visibility>\n <relativeHumidity units="%">65</relativeHumidity>\n <wind>\n <speed unitType="metric" units="km/h">12</speed>\n <gust unitType="metric" units="km/h">28</gust>\n <direction>ONO</direction>\n <bearing units="degrees">300.0</bearing>\n </wind>\n </currentConditions>\n <forecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>15</hour>\n <minute>30</minute>\n <timeStamp>20220321153000</timeStamp>\n <textSummary>21 mars 2022 15h30 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>11</hour>\n <minute>30</minute>\n <timeStamp>20220321113000</timeStamp>\n <textSummary>21 mars 2022 11h30 HAE</textSummary>\n </dateTime>\n <regionalNormals>\n <textSummary>Minimum moins 6. Maximum plus 2.</textSummary>\n <temperature unitType="metric" units="C" class="high">2</temperature>\n <temperature unitType="metric" units="C" class="low">-6</temperature>\n </regionalNormals>\n <forecast>\n <period textForecastName="Aujourd\'hui">lundi</period>\n <textSummary>G\xe9n\xe9ralement nuageux avec 40 pour cent de probabilit\xe9 d\'averses de neige ou de pluie. Vents d\'ouest de 20 km/h avec rafales \xe0 40. Maximum plus 2. Indice UV de 3 ou mod\xe9r\xe9.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux avec 40 pour cent de probabilit\xe9 d\'averses de neige ou de pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">07</iconCode>\n <pop units="%">0</pop>\n <textSummary>Possibilit\xe9 d\'averses de neige ou de pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 2.</textSummary>\n <temperature unitType="metric" units="C" class="high">2</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents d\'ouest de 20 km/h avec rafales \xe0 40.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">40</gust>\n <direction>O</direction>\n <bearing units="degrees">27</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="16" end="22"/>\n </precipitation>\n <uv category="mod\xe9r\xe9">\n <index>3</index>\n <textSummary>Indice UV de 3 ou mod\xe9r\xe9.</textSummary>\n </uv>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Ce soir et cette nuit">ce soir et cette nuit</period>\n <textSummary>G\xe9n\xe9ralement nuageux. Vents d\'ouest de 20 km/h avec rafales \xe0 40. Minimum moins 6. Refroidissement \xe9olien moins 13 au cours de la nuit.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">33</iconCode>\n <pop units="%"/>\n <textSummary>G\xe9n\xe9ralement nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 6.</textSummary>\n <temperature unitType="metric" units="C" class="low">-6</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents d\'ouest de 20 km/h avec rafales \xe0 40.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">40</gust>\n <direction>O</direction>\n <bearing units="degrees">27</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <windChill>\n <textSummary>Refroidissement \xe9olien moins 13 au cours de la nuit.</textSummary>\n <calculated unitType="metric" class="nuit">-13</calculated>\n <frostbite/>\n </windChill>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi">mardi</period>\n <textSummary>G\xe9n\xe9ralement nuageux. Vents d\'ouest de 20 km/h avec rafales \xe0 40. Maximum z\xe9ro. Refroidissement \xe9olien moins 13 le matin. Indice UV de 2 ou bas.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">03</iconCode>\n <pop units="%"/>\n <textSummary>G\xe9n\xe9ralement nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum z\xe9ro.</textSummary>\n <temperature unitType="metric" units="C" class="high">0</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents d\'ouest de 20 km/h avec rafales \xe0 40.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">40</gust>\n <direction>O</direction>\n <bearing units="degrees">27</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <windChill>\n <textSummary>Refroidissement \xe9olien moins 13 le matin.</textSummary>\n <calculated unitType="metric" class="matin">-13</calculated>\n <frostbite/>\n </windChill>\n <uv category="bas">\n <index>2</index>\n <textSummary>Indice UV de 2 ou bas.</textSummary>\n </uv>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi soir et nuit">mardi soir et nuit</period>\n <textSummary>D\xe9gag\xe9. Minimum moins 8.</textSummary>\n <cloudPrecip>\n <textSummary>D\xe9gag\xe9.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">30</iconCode>\n <pop units="%"/>\n <textSummary>D\xe9gag\xe9</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 8.</textSummary>\n <temperature unitType="metric" units="C" class="low">-8</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">85</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi">mercredi</period>\n <textSummary>Ensoleill\xe9. Maximum plus 3.</textSummary>\n <cloudPrecip>\n <textSummary>Ensoleill\xe9.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">00</iconCode>\n <pop units="%"/>\n <textSummary>Ensoleill\xe9</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 3.</textSummary>\n <temperature unitType="metric" units="C" class="high">3</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">60</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi soir et nuit">mercredi soir et nuit</period>\n <textSummary>Nuageux. Minimum moins 3.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">10</iconCode>\n <pop units="%"/>\n <textSummary>Nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 3.</textSummary>\n <temperature unitType="metric" units="C" class="low">-3</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">75</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi">jeudi</period>\n <textSummary>Neige intermittente. Maximum plus 1.</textSummary>\n <cloudPrecip>\n <textSummary>Neige intermittente.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">16</iconCode>\n <pop units="%"/>\n <textSummary>Neige intermittente</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 1.</textSummary>\n <temperature unitType="metric" units="C" class="high">1</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="87" end="94">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">80</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi soir et nuit">jeudi soir et nuit</period>\n <textSummary>Neige. Minimum moins 1.</textSummary>\n <cloudPrecip>\n <textSummary>Neige.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">17</iconCode>\n <pop units="%"/>\n <textSummary>Neige</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 1.</textSummary>\n <temperature unitType="metric" units="C" class="low">-1</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="94" end="106">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi">vendredi</period>\n <textSummary>Neige ou pluie. Maximum plus 3.</textSummary>\n <cloudPrecip>\n <textSummary>Neige ou pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%"/>\n <textSummary>Neige ou pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 3.</textSummary>\n <temperature unitType="metric" units="C" class="high">3</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="106" end="111">neige</precipType>\n <precipType start="111" end="114">pluie et neige</precipType>\n <precipType start="114" end="118">pluie</precipType>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi soir et nuit">vendredi soir et nuit</period>\n <textSummary>Pluie ou neige. Minimum plus 1.</textSummary>\n <cloudPrecip>\n <textSummary>Pluie ou neige.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%"/>\n <textSummary>Pluie ou neige</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum plus 1.</textSummary>\n <temperature unitType="metric" units="C" class="low">1</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="118" end="126">pluie</precipType>\n <precipType start="126" end="129">pluie et neige</precipType>\n <precipType start="129" end="130">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi">samedi</period>\n <textSummary>Nuageux avec 60 pour cent de probabilit\xe9 d\'averses de neige ou de pluie. Maximum plus 5.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux avec 60 pour cent de probabilit\xe9 d\'averses de neige ou de pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%">60</pop>\n <textSummary>Possibilit\xe9 d\'averses de neige ou de pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 5.</textSummary>\n <temperature unitType="metric" units="C" class="high">5</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="130" end="132">neige</precipType>\n <precipType start="138" end="142">pluie</precipType>\n </precipitation>\n <relativeHumidity units="%">70</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi soir et nuit">samedi soir et nuit</period>\n <textSummary>Nuageux avec 30 pour cent de probabilit\xe9 d\'averses de pluie ou de neige. Minimum moins 7.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux avec 30 pour cent de probabilit\xe9 d\'averses de pluie ou de neige.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%">30</pop>\n <textSummary>Possibilit\xe9 d\'averses de pluie ou de neige</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 7.</textSummary>\n <temperature unitType="metric" units="C" class="low">-7</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="142" end="147">pluie</precipType>\n <precipType start="147" end="150">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">65</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Dimanche">dimanche</period>\n <textSummary>Alternance de soleil et de nuages. Maximum moins 2.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum moins 2.</textSummary>\n <temperature unitType="metric" units="C" class="high">-2</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">40</relativeHumidity>\n </forecast>\n </forecastGroup>\n <hourlyForecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>15</hour>\n <minute>30</minute>\n <timeStamp>20220321153000</timeStamp>\n <textSummary>21 mars 2022 15h30 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>11</hour>\n <minute>30</minute>\n <timeStamp>20220321113000</timeStamp>\n <textSummary>21 mars 2022 11h30 HAE</textSummary>\n </dateTime>\n <hourlyForecast dateTimeUTC="202203211700">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">2</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203211800">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">2</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203211900">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">2</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212000">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">1</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212100">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">1</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">0</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">0</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220000">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-1</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-7</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220100">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-1</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-7</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-2</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-7</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-2</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-8</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220400">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-3</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-9</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220500">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-4</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-10</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220600">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220700">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220800">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220900">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221000">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221100">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221400">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-11</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221500">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-4</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-10</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221600">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-3</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-9</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n </hourlyForecastGroup>\n <yesterdayConditions>\n <temperature unitType="metric" units="C" class="high">2.8</temperature>\n <temperature unitType="metric" units="C" class="low">-0.3</temperature>\n <precip unitType="metric" units="mm">7.4</precip>\n </yesterdayConditions>\n <riseSet>\n <disclaimer>Les heures de lever et coucher du soleil sont une estimation seulement et peuvent \xeatre diff\xe9rentes des heures officielles de lever et coucher du soleil disponibles ici ( http://hia-iha.nrc-cnrc.gc.ca/sunrise_f.html )</disclaimer>\n <dateTime name="sunrise" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>10</hour>\n <minute>46</minute>\n <timeStamp>20220321104600</timeStamp>\n <textSummary>21 mars 2022 10h46 UTC</textSummary>\n </dateTime>\n <dateTime name="sunrise" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>06</hour>\n <minute>46</minute>\n <timeStamp>20220321064600</timeStamp>\n <textSummary>21 mars 2022 06h46 HAE</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>22</hour>\n <minute>58</minute>\n <timeStamp>20220321225800</timeStamp>\n <textSummary>21 mars 2022 22h58 UTC</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>18</hour>\n <minute>58</minute>\n <timeStamp>20220321185800</timeStamp>\n <textSummary>21 mars 2022 18h58 HAE</textSummary>\n </dateTime>\n </riseSet>\n <almanac>\n <temperature class="extremeMax" period="1993-2021" unitType="metric" units="C" year="2012">18.3</temperature>\n <temperature class="extremeMin" period="1993-2021" unitType="metric" units="C" year="2007">-19.9</temperature>\n <temperature class="normalMax" unitType="metric" units="C"/>\n <temperature class="normalMin" unitType="metric" units="C"/>\n <temperature class="normalMean" unitType="metric" units="C"/>\n <precipitation class="extremeRainfall" period="1993-2013" unitType="metric" units="mm" year="1993">0.0</precipitation>\n <precipitation class="extremeSnowfall" period="1993-2013" unitType="metric" units="cm" year="1993">8.8</precipitation>\n <precipitation class="extremePrecipitation" period="1993-2021" unitType="metric" units="mm" year="2003">10.4</precipitation>\n <precipitation class="extremeSnowOnGround" period="1993-2021" unitType="metric" units="cm" year="2008">97.0</precipitation>\n <pop units="%"/>\n </almanac>\n </siteData>\n\n')
+                    # dict_data = xmltodict.parse(b'<?xml version=\'1.0\' encoding=\'ISO-8859-1\'?>\n <siteData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://dd.meteo.gc.ca/citypage_weather/schema/site.xsd">\n <license>https://dd.meteo.gc.ca/doc/LICENCE_GENERAL.txt</license>\n <dateTime name="xmlCreation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>16</hour>\n <minute>37</minute>\n <timeStamp>20220321163700</timeStamp>\n <textSummary>21 mars 2022 16h37 UTC</textSummary>\n </dateTime>\n <dateTime name="xmlCreation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>12</hour>\n <minute>37</minute>\n <timeStamp>20220321123700</timeStamp>\n <textSummary>21 mars 2022 12h37 HAE</textSummary>\n </dateTime>\n <location>\n <continent>Am\xe9rique du Nord</continent>\n <country code="ca">Canada</country>\n <province code="qc">Qu\xe9bec</province>\n <name code="s0000620" lat="46.82N" lon="71.22O">Qu\xe9bec</name>\n <region>Qu\xe9bec</region>\n </location>\n <warnings/>\n <currentConditions>\n <station code="yqb" lat="46.79N" lon="71.39O">A\xe9roport int. Lesage de Qu\xe9bec</station>\n <dateTime name="observation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>16</hour>\n <minute>32</minute>\n <timeStamp>20220321163200</timeStamp>\n <textSummary>21 mars 2022 16h32 UTC</textSummary>\n </dateTime>\n <dateTime name="observation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>12</hour>\n <minute>32</minute>\n <timeStamp>20220321123200</timeStamp>\n <textSummary>21 mars 2022 12h32 HAE</textSummary>\n </dateTime>\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="gif">03</iconCode>\n <temperature unitType="metric" units="C">-25.4</temperature>\n <dewpoint unitType="metric" units="C">-4.8</dewpoint>\n <pressure unitType="metric" units="kPa" change="0.01" tendency="\xe0 la baisse">101.0</pressure>\n <visibility unitType="metric" units="km">48.3</visibility>\n <relativeHumidity units="%">65</relativeHumidity>\n <wind>\n <speed unitType="metric" units="km/h">12</speed>\n <gust unitType="metric" units="km/h">28</gust>\n <direction>ONO</direction>\n <bearing units="degrees">300.0</bearing>\n </wind>\n </currentConditions>\n <forecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>15</hour>\n <minute>30</minute>\n <timeStamp>20220321153000</timeStamp>\n <textSummary>21 mars 2022 15h30 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>11</hour>\n <minute>30</minute>\n <timeStamp>20220321113000</timeStamp>\n <textSummary>21 mars 2022 11h30 HAE</textSummary>\n </dateTime>\n <regionalNormals>\n <textSummary>Minimum moins 6. Maximum plus 2.</textSummary>\n <temperature unitType="metric" units="C" class="high">2</temperature>\n <temperature unitType="metric" units="C" class="low">-6</temperature>\n </regionalNormals>\n <forecast>\n <period textForecastName="Aujourd\'hui">lundi</period>\n <textSummary>G\xe9n\xe9ralement nuageux avec 40 pour cent de probabilit\xe9 d\'averses de neige ou de pluie. Vents d\'ouest de 20 km/h avec rafales \xe0 40. Maximum plus 2. Indice UV de 3 ou mod\xe9r\xe9.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux avec 40 pour cent de probabilit\xe9 d\'averses de neige ou de pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">07</iconCode>\n <pop units="%">0</pop>\n <textSummary>Possibilit\xe9 d\'averses de neige ou de pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 2.</textSummary>\n <temperature unitType="metric" units="C" class="high">2</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents d\'ouest de 20 km/h avec rafales \xe0 40.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">40</gust>\n <direction>O</direction>\n <bearing units="degrees">27</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="16" end="22"/>\n </precipitation>\n <uv category="mod\xe9r\xe9">\n <index>3</index>\n <textSummary>Indice UV de 3 ou mod\xe9r\xe9.</textSummary>\n </uv>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Ce soir et cette nuit">ce soir et cette nuit</period>\n <textSummary>G\xe9n\xe9ralement nuageux. Vents d\'ouest de 20 km/h avec rafales \xe0 40. Minimum moins 6. Refroidissement \xe9olien moins 13 au cours de la nuit.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">33</iconCode>\n <pop units="%"/>\n <textSummary>G\xe9n\xe9ralement nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 6.</textSummary>\n <temperature unitType="metric" units="C" class="low">-6</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents d\'ouest de 20 km/h avec rafales \xe0 40.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">40</gust>\n <direction>O</direction>\n <bearing units="degrees">27</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <windChill>\n <textSummary>Refroidissement \xe9olien moins 13 au cours de la nuit.</textSummary>\n <calculated unitType="metric" class="nuit">-13</calculated>\n <frostbite/>\n </windChill>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi">mardi</period>\n <textSummary>G\xe9n\xe9ralement nuageux. Vents d\'ouest de 20 km/h avec rafales \xe0 40. Maximum z\xe9ro. Refroidissement \xe9olien moins 13 le matin. Indice UV de 2 ou bas.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">03</iconCode>\n <pop units="%"/>\n <textSummary>G\xe9n\xe9ralement nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum z\xe9ro.</textSummary>\n <temperature unitType="metric" units="C" class="high">0</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents d\'ouest de 20 km/h avec rafales \xe0 40.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">40</gust>\n <direction>O</direction>\n <bearing units="degrees">27</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <windChill>\n <textSummary>Refroidissement \xe9olien moins 13 le matin.</textSummary>\n <calculated unitType="metric" class="matin">-13</calculated>\n <frostbite/>\n </windChill>\n <uv category="bas">\n <index>2</index>\n <textSummary>Indice UV de 2 ou bas.</textSummary>\n </uv>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi soir et nuit">mardi soir et nuit</period>\n <textSummary>D\xe9gag\xe9. Minimum moins 8.</textSummary>\n <cloudPrecip>\n <textSummary>D\xe9gag\xe9.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">30</iconCode>\n <pop units="%"/>\n <textSummary>D\xe9gag\xe9</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 8.</textSummary>\n <temperature unitType="metric" units="C" class="low">-8</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">85</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi">mercredi</period>\n <textSummary>Ensoleill\xe9. Maximum plus 3.</textSummary>\n <cloudPrecip>\n <textSummary>Ensoleill\xe9.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">00</iconCode>\n <pop units="%"/>\n <textSummary>Ensoleill\xe9</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 3.</textSummary>\n <temperature unitType="metric" units="C" class="high">3</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">60</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi soir et nuit">mercredi soir et nuit</period>\n <textSummary>Nuageux. Minimum moins 3.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">10</iconCode>\n <pop units="%"/>\n <textSummary>Nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 3.</textSummary>\n <temperature unitType="metric" units="C" class="low">-3</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">75</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi">jeudi</period>\n <textSummary>Neige intermittente. Maximum plus 1.</textSummary>\n <cloudPrecip>\n <textSummary>Neige intermittente.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">16</iconCode>\n <pop units="%"/>\n <textSummary>Neige intermittente</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 1.</textSummary>\n <temperature unitType="metric" units="C" class="high">1</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="87" end="94">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">80</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi soir et nuit">jeudi soir et nuit</period>\n <textSummary>Neige. Minimum moins 1.</textSummary>\n <cloudPrecip>\n <textSummary>Neige.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">17</iconCode>\n <pop units="%"/>\n <textSummary>Neige</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 1.</textSummary>\n <temperature unitType="metric" units="C" class="low">-1</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="94" end="106">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi">vendredi</period>\n <textSummary>Neige ou pluie. Maximum plus 3.</textSummary>\n <cloudPrecip>\n <textSummary>Neige ou pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%"/>\n <textSummary>Neige ou pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 3.</textSummary>\n <temperature unitType="metric" units="C" class="high">3</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="106" end="111">neige</precipType>\n <precipType start="111" end="114">pluie et neige</precipType>\n <precipType start="114" end="118">pluie</precipType>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi soir et nuit">vendredi soir et nuit</period>\n <textSummary>Pluie ou neige. Minimum plus 1.</textSummary>\n <cloudPrecip>\n <textSummary>Pluie ou neige.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%"/>\n <textSummary>Pluie ou neige</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum plus 1.</textSummary>\n <temperature unitType="metric" units="C" class="low">1</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="118" end="126">pluie</precipType>\n <precipType start="126" end="129">pluie et neige</precipType>\n <precipType start="129" end="130">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi">samedi</period>\n <textSummary>Nuageux avec 60 pour cent de probabilit\xe9 d\'averses de neige ou de pluie. Maximum plus 5.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux avec 60 pour cent de probabilit\xe9 d\'averses de neige ou de pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%">60</pop>\n <textSummary>Possibilit\xe9 d\'averses de neige ou de pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum plus 5.</textSummary>\n <temperature unitType="metric" units="C" class="high">5</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="130" end="132">neige</precipType>\n <precipType start="138" end="142">pluie</precipType>\n </precipitation>\n <relativeHumidity units="%">70</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi soir et nuit">samedi soir et nuit</period>\n <textSummary>Nuageux avec 30 pour cent de probabilit\xe9 d\'averses de pluie ou de neige. Minimum moins 7.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux avec 30 pour cent de probabilit\xe9 d\'averses de pluie ou de neige.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">15</iconCode>\n <pop units="%">30</pop>\n <textSummary>Possibilit\xe9 d\'averses de pluie ou de neige</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum moins 7.</textSummary>\n <temperature unitType="metric" units="C" class="low">-7</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="142" end="147">pluie</precipType>\n <precipType start="147" end="150">neige</precipType>\n </precipitation>\n <relativeHumidity units="%">65</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Dimanche">dimanche</period>\n <textSummary>Alternance de soleil et de nuages. Maximum moins 2.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum moins 2.</textSummary>\n <temperature unitType="metric" units="C" class="high">-2</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">40</relativeHumidity>\n </forecast>\n </forecastGroup>\n <hourlyForecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>15</hour>\n <minute>30</minute>\n <timeStamp>20220321153000</timeStamp>\n <textSummary>21 mars 2022 15h30 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>11</hour>\n <minute>30</minute>\n <timeStamp>20220321113000</timeStamp>\n <textSummary>21 mars 2022 11h30 HAE</textSummary>\n </dateTime>\n <hourlyForecast dateTimeUTC="202203211700">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">2</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203211800">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">2</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203211900">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">2</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212000">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">1</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212100">\n <condition>Possibilit\xe9 d\'averses de neige ou de pluie</condition>\n <iconCode format="png">07</iconCode>\n <temperature unitType="metric" units="C">1</temperature>\n <lop category="Basse" units="%">40</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">0</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203212300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">0</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220000">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-1</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-7</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220100">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-1</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-7</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-2</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-7</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-2</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-8</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220400">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-3</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-9</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220500">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-4</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-10</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220600">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220700">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220800">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203220900">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221000">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">33</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221100">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-6</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-13</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-12</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221400">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-5</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-11</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221500">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-4</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-10</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202203221600">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">-3</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric">-9</windChill>\n <humidex unitType="metric"/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Ouest">O</direction>\n <gust unitType="metric" units="km/h">40</gust>\n </wind>\n </hourlyForecast>\n </hourlyForecastGroup>\n <yesterdayConditions>\n <temperature unitType="metric" units="C" class="high">2.8</temperature>\n <temperature unitType="metric" units="C" class="low">-0.3</temperature>\n <precip unitType="metric" units="mm">7.4</precip>\n </yesterdayConditions>\n <riseSet>\n <disclaimer>Les hours de lever et coucher du soleil sont une estimation seulement et peuvent \xeatre diff\xe9rentes des hours officielles de lever et coucher du soleil disponibles ici ( http://hia-iha.nrc-cnrc.gc.ca/sunrise_f.html )</disclaimer>\n <dateTime name="sunrise" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>10</hour>\n <minute>46</minute>\n <timeStamp>20220321104600</timeStamp>\n <textSummary>21 mars 2022 10h46 UTC</textSummary>\n </dateTime>\n <dateTime name="sunrise" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>06</hour>\n <minute>46</minute>\n <timeStamp>20220321064600</timeStamp>\n <textSummary>21 mars 2022 06h46 HAE</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>22</hour>\n <minute>58</minute>\n <timeStamp>20220321225800</timeStamp>\n <textSummary>21 mars 2022 22h58 UTC</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="mars">03</month>\n <day name="lundi">21</day>\n <hour>18</hour>\n <minute>58</minute>\n <timeStamp>20220321185800</timeStamp>\n <textSummary>21 mars 2022 18h58 HAE</textSummary>\n </dateTime>\n </riseSet>\n <almanac>\n <temperature class="extremeMax" period="1993-2021" unitType="metric" units="C" year="2012">18.3</temperature>\n <temperature class="extremeMin" period="1993-2021" unitType="metric" units="C" year="2007">-19.9</temperature>\n <temperature class="normalMax" unitType="metric" units="C"/>\n <temperature class="normalMin" unitType="metric" units="C"/>\n <temperature class="normalMean" unitType="metric" units="C"/>\n <precipitation class="extremeRainfall" period="1993-2013" unitType="metric" units="mm" year="1993">0.0</precipitation>\n <precipitation class="extremeSnowfall" period="1993-2013" unitType="metric" units="cm" year="1993">8.8</precipitation>\n <precipitation class="extremePrecipitation" period="1993-2021" unitType="metric" units="mm" year="2003">10.4</precipitation>\n <precipitation class="extremeSnowOnGround" period="1993-2021" unitType="metric" units="cm" year="2008">97.0</precipitation>\n <pop units="%"/>\n </almanac>\n </siteData>\n\n')
                     # Montmagny
-                    # dict_data = xmltodict.parse(b'<?xml version=\'1.0\' encoding=\'ISO-8859-1\'?>\n <siteData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://dd.meteo.gc.ca/citypage_weather/schema/site.xsd">\n <license>https://dd.meteo.gc.ca/doc/LICENCE_GENERAL.txt</license>\n <dateTime name="xmlCreation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>23</hour>\n <minute>08</minute>\n <timeStamp>20220808230800</timeStamp>\n <textSummary>08 ao\xfbt 2022 23h08 UTC</textSummary>\n </dateTime>\n <dateTime name="xmlCreation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>08</minute>\n <timeStamp>20220808190800</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h08 HAE</textSummary>\n </dateTime>\n <location>\n <continent>Am\xe9rique du Nord</continent>\n <country code="ca">Canada</country>\n <province code="qc">Qu\xe9bec</province>\n <name code="s0000334" lat="46.98N" lon="70.55O">Montmagny</name>\n <region>Montmagny - L\'Islet</region>\n </location>\n <warnings/>\n <currentConditions>\n <station code="wst" lat="47.36N" lon="70.03O">La Pocati\xe8re</station>\n <dateTime name="observation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>23</hour>\n <minute>00</minute>\n <timeStamp>20220808230000</timeStamp>\n <textSummary>08 ao\xfbt 2022 23h00 UTC</textSummary>\n </dateTime>\n <dateTime name="observation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>00</minute>\n <timeStamp>20220808190000</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h00 HAE</textSummary>\n </dateTime>\n <condition/>\n <iconCode format="gif"/>\n <temperature unitType="metric" units="C">14.9</temperature>\n <dewpoint unitType="metric" units="C">12.9</dewpoint>\n <pressure unitType="metric" units="kPa" change="0.13" tendency="\xe0 la baisse">101.3</pressure>\n <visibility unitType="metric" units="km"/>\n <relativeHumidity units="%">87</relativeHumidity>\n <wind>\n <speed unitType="metric" units="km/h">5</speed>\n <gust unitType="metric" units="km/h"/>\n <direction>SE</direction>\n <bearing units="degrees">133.2</bearing>\n </wind>\n </currentConditions>\n <forecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>45</minute>\n <timeStamp>20220808194500</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h45 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>15</hour>\n <minute>45</minute>\n <timeStamp>20220808154500</timeStamp>\n <textSummary>08 ao\xfbt 2022 15h45 HAE</textSummary>\n </dateTime>\n <regionalNormals>\n <textSummary>Minimum 11. Maximum 23.</textSummary>\n <temperature unitType="metric" units="C" class="high">23</temperature>\n <temperature unitType="metric" units="C" class="low">11</temperature>\n </regionalNormals>\n <forecast>\n <period textForecastName="Ce soir et cette nuit">ce soir et cette nuit</period>\n <textSummary>Pluie. Hauteur pr\xe9vue de 30 mm. Vents devenant du nord-est \xe0 30 km/h ce soir. Minimum 12.</textSummary>\n <cloudPrecip>\n <textSummary>Pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">12</iconCode>\n <pop units="%"/>\n <textSummary>Pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 12.</textSummary>\n <temperature unitType="metric" units="C" class="low">12</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents devenant du nord-est \xe0 30 km/h ce soir.</textSummary>\n <wind index="1" rank="minor">\n <speed unitType="metric" units="km/h">10</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n <wind index="2" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n <wind index="3" rank="major">\n <speed unitType="metric" units="km/h">30</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary>Hauteur pr\xe9vue de 30 mm.</textSummary>\n <precipType start="20" end="34">pluie</precipType>\n <accumulation>\n <name>pluie</name>\n <amount unitType="metric" units="mm">30</amount>\n </accumulation>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi">mardi</period>\n <textSummary>Pluie intermittente m\xeal\xe9e de bruine cessant le matin. Nuageux par la suite. Vents du nord-est de 30 km/h. Maximum 18. Indice UV de 5 ou mod\xe9r\xe9.</textSummary>\n <cloudPrecip>\n <textSummary>Pluie intermittente m\xeal\xe9e de bruine cessant le matin. Nuageux par la suite.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">12</iconCode>\n <pop units="%"/>\n <textSummary>Pluie intermittente ou bruine</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 18.</textSummary>\n <temperature unitType="metric" units="C" class="high">18</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents du nord-est de 30 km/h.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">30</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n <wind index="2" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="34" end="38">pluie et bruine</precipType>\n </precipitation>\n <uv category="mod\xe9r\xe9">\n <index>5</index>\n <textSummary>Indice UV de 5 ou mod\xe9r\xe9.</textSummary>\n </uv>\n <relativeHumidity units="%">80</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi soir et nuit">mardi soir et nuit</period>\n <textSummary>G\xe9n\xe9ralement nuageux. Minimum 13.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">33</iconCode>\n <pop units="%"/>\n <textSummary>G\xe9n\xe9ralement nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 13.</textSummary>\n <temperature unitType="metric" units="C" class="low">13</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi">mercredi</period>\n <textSummary>Nuageux. Maximum 23.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">10</iconCode>\n <pop units="%"/>\n <textSummary>Nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 23.</textSummary>\n <temperature unitType="metric" units="C" class="high">23</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">70</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi soir et nuit">mercredi soir et nuit</period>\n <textSummary>Nuageux. Minimum 17.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">10</iconCode>\n <pop units="%"/>\n <textSummary>Nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 17.</textSummary>\n <temperature unitType="metric" units="C" class="low">17</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">80</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi">jeudi</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 25.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 25.</textSummary>\n <temperature unitType="metric" units="C" class="high">25</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">75</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi soir et nuit">jeudi soir et nuit</period>\n <textSummary>Passages nuageux. Minimum 16.</textSummary>\n <cloudPrecip>\n <textSummary>Passages nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">32</iconCode>\n <pop units="%"/>\n <textSummary>Passages nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 16.</textSummary>\n <temperature unitType="metric" units="C" class="low">16</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi">vendredi</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 19.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 19.</textSummary>\n <temperature unitType="metric" units="C" class="high">19</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">75</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi soir et nuit">vendredi soir et nuit</period>\n <textSummary>Passages nuageux. Minimum 10.</textSummary>\n <cloudPrecip>\n <textSummary>Passages nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">32</iconCode>\n <pop units="%"/>\n <textSummary>Passages nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 10.</textSummary>\n <temperature unitType="metric" units="C" class="low">10</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi">samedi</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 24.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 24.</textSummary>\n <temperature unitType="metric" units="C" class="high">24</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">50</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi soir et nuit">samedi soir et nuit</period>\n <textSummary>Passages nuageux. Minimum 11.</textSummary>\n <cloudPrecip>\n <textSummary>Passages nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">32</iconCode>\n <pop units="%"/>\n <textSummary>Passages nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 11.</textSummary>\n <temperature unitType="metric" units="C" class="low">11</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Dimanche">dimanche</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 22.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 22.</textSummary>\n <temperature unitType="metric" units="C" class="high">22</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n </forecastGroup>\n <hourlyForecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>45</minute>\n <timeStamp>20220808194500</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h45 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>15</hour>\n <minute>45</minute>\n <timeStamp>20220808154500</timeStamp>\n <textSummary>08 ao\xfbt 2022 15h45 HAE</textSummary>\n </dateTime>\n <hourlyForecast dateTimeUTC="202208090000">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090100">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090200">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090300">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090400">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090500">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090600">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090700">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090800">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">12</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090900">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">12</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091000">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">12</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091100">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091200">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091300">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091400">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091500">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091600">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091700">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">15</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091800">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">15</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091900">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">16</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092000">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">17</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092100">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">18</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">17</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">10</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">17</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">10</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n </hourlyForecastGroup>\n <yesterdayConditions>\n <temperature unitType="metric" units="C" class="high">28.2</temperature>\n <temperature unitType="metric" units="C" class="low">13.2</temperature>\n <precip unitType="metric" units="mm">0.0</precip>\n </yesterdayConditions>\n <riseSet>\n <disclaimer>Les heures de lever et coucher du soleil sont une estimation seulement et peuvent \xeatre diff\xe9rentes des heures officielles de lever et coucher du soleil disponibles ici ( http://hia-iha.nrc-cnrc.gc.ca/sunrise_f.html )</disclaimer>\n <dateTime name="sunrise" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>09</hour>\n <minute>30</minute>\n <timeStamp>20220808093000</timeStamp>\n <textSummary>08 ao\xfbt 2022 09h30 UTC</textSummary>\n </dateTime>\n <dateTime name="sunrise" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>05</hour>\n <minute>30</minute>\n <timeStamp>20220808053000</timeStamp>\n <textSummary>08 ao\xfbt 2022 05h30 HAE</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="mardi">09</day>\n <hour>00</hour>\n <minute>05</minute>\n <timeStamp>20220809000500</timeStamp>\n <textSummary>09 ao\xfbt 2022 00h05 UTC</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>20</hour>\n <minute>05</minute>\n <timeStamp>20220808200500</timeStamp>\n <textSummary>08 ao\xfbt 2022 20h05 HAE</textSummary>\n </dateTime>\n </riseSet>\n <almanac>\n <temperature class="extremeMax" period="1996-2021" unitType="metric" units="C" year="1998">31.1</temperature>\n <temperature class="extremeMin" period="1996-2021" unitType="metric" units="C" year="2009">7.9</temperature>\n <temperature class="normalMax" unitType="metric" units="C"/>\n <temperature class="normalMin" unitType="metric" units="C"/>\n <temperature class="normalMean" unitType="metric" units="C"/>\n <precipitation class="extremeRainfall" period="-" unitType="metric" units="mm" year=""/>\n <precipitation class="extremeSnowfall" period="-" unitType="metric" units="cm" year=""/>\n <precipitation class="extremePrecipitation" period="1996-2021" unitType="metric" units="mm" year="2019">57.7</precipitation>\n <precipitation class="extremeSnowOnGround" period="-" unitType="metric" units="cm" year=""/>\n <pop units="%"/>\n </almanac>\n </siteData>\n\n')
+                    # dict_data = xmltodict.parse(b'<?xml version=\'1.0\' encoding=\'ISO-8859-1\'?>\n <siteData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://dd.meteo.gc.ca/citypage_weather/schema/site.xsd">\n <license>https://dd.meteo.gc.ca/doc/LICENCE_GENERAL.txt</license>\n <dateTime name="xmlCreation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>23</hour>\n <minute>08</minute>\n <timeStamp>20220808230800</timeStamp>\n <textSummary>08 ao\xfbt 2022 23h08 UTC</textSummary>\n </dateTime>\n <dateTime name="xmlCreation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>08</minute>\n <timeStamp>20220808190800</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h08 HAE</textSummary>\n </dateTime>\n <location>\n <continent>Am\xe9rique du Nord</continent>\n <country code="ca">Canada</country>\n <province code="qc">Qu\xe9bec</province>\n <name code="s0000334" lat="46.98N" lon="70.55O">Montmagny</name>\n <region>Montmagny - L\'Islet</region>\n </location>\n <warnings/>\n <currentConditions>\n <station code="wst" lat="47.36N" lon="70.03O">La Pocati\xe8re</station>\n <dateTime name="observation" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>23</hour>\n <minute>00</minute>\n <timeStamp>20220808230000</timeStamp>\n <textSummary>08 ao\xfbt 2022 23h00 UTC</textSummary>\n </dateTime>\n <dateTime name="observation" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>00</minute>\n <timeStamp>20220808190000</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h00 HAE</textSummary>\n </dateTime>\n <condition/>\n <iconCode format="gif"/>\n <temperature unitType="metric" units="C">14.9</temperature>\n <dewpoint unitType="metric" units="C">12.9</dewpoint>\n <pressure unitType="metric" units="kPa" change="0.13" tendency="\xe0 la baisse">101.3</pressure>\n <visibility unitType="metric" units="km"/>\n <relativeHumidity units="%">87</relativeHumidity>\n <wind>\n <speed unitType="metric" units="km/h">5</speed>\n <gust unitType="metric" units="km/h"/>\n <direction>SE</direction>\n <bearing units="degrees">133.2</bearing>\n </wind>\n </currentConditions>\n <forecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>45</minute>\n <timeStamp>20220808194500</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h45 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>15</hour>\n <minute>45</minute>\n <timeStamp>20220808154500</timeStamp>\n <textSummary>08 ao\xfbt 2022 15h45 HAE</textSummary>\n </dateTime>\n <regionalNormals>\n <textSummary>Minimum 11. Maximum 23.</textSummary>\n <temperature unitType="metric" units="C" class="high">23</temperature>\n <temperature unitType="metric" units="C" class="low">11</temperature>\n </regionalNormals>\n <forecast>\n <period textForecastName="Ce soir et cette nuit">ce soir et cette nuit</period>\n <textSummary>Pluie. Hauteur pr\xe9vue de 30 mm. Vents devenant du nord-est \xe0 30 km/h ce soir. Minimum 12.</textSummary>\n <cloudPrecip>\n <textSummary>Pluie.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">12</iconCode>\n <pop units="%"/>\n <textSummary>Pluie</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 12.</textSummary>\n <temperature unitType="metric" units="C" class="low">12</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents devenant du nord-est \xe0 30 km/h ce soir.</textSummary>\n <wind index="1" rank="minor">\n <speed unitType="metric" units="km/h">10</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n <wind index="2" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n <wind index="3" rank="major">\n <speed unitType="metric" units="km/h">30</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary>Hauteur pr\xe9vue de 30 mm.</textSummary>\n <precipType start="20" end="34">pluie</precipType>\n <accumulation>\n <name>pluie</name>\n <amount unitType="metric" units="mm">30</amount>\n </accumulation>\n </precipitation>\n <relativeHumidity units="%">100</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi">mardi</period>\n <textSummary>Pluie intermittente m\xeal\xe9e de bruine cessant le matin. Nuageux par la suite. Vents du nord-est de 30 km/h. Maximum 18. Indice UV de 5 ou mod\xe9r\xe9.</textSummary>\n <cloudPrecip>\n <textSummary>Pluie intermittente m\xeal\xe9e de bruine cessant le matin. Nuageux par la suite.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">12</iconCode>\n <pop units="%"/>\n <textSummary>Pluie intermittente ou bruine</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 18.</textSummary>\n <temperature unitType="metric" units="C" class="high">18</temperature>\n </temperatures>\n <winds>\n <textSummary>Vents du nord-est de 30 km/h.</textSummary>\n <wind index="1" rank="major">\n <speed unitType="metric" units="km/h">30</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n <wind index="2" rank="major">\n <speed unitType="metric" units="km/h">20</speed>\n <gust unitType="metric" units="km/h">00</gust>\n <direction>NE</direction>\n <bearing units="degrees">04</bearing>\n </wind>\n </winds>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="34" end="38">pluie et bruine</precipType>\n </precipitation>\n <uv category="mod\xe9r\xe9">\n <index>5</index>\n <textSummary>Indice UV de 5 ou mod\xe9r\xe9.</textSummary>\n </uv>\n <relativeHumidity units="%">80</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mardi soir et nuit">mardi soir et nuit</period>\n <textSummary>G\xe9n\xe9ralement nuageux. Minimum 13.</textSummary>\n <cloudPrecip>\n <textSummary>G\xe9n\xe9ralement nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">33</iconCode>\n <pop units="%"/>\n <textSummary>G\xe9n\xe9ralement nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 13.</textSummary>\n <temperature unitType="metric" units="C" class="low">13</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi">mercredi</period>\n <textSummary>Nuageux. Maximum 23.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">10</iconCode>\n <pop units="%"/>\n <textSummary>Nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 23.</textSummary>\n <temperature unitType="metric" units="C" class="high">23</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">70</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Mercredi soir et nuit">mercredi soir et nuit</period>\n <textSummary>Nuageux. Minimum 17.</textSummary>\n <cloudPrecip>\n <textSummary>Nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">10</iconCode>\n <pop units="%"/>\n <textSummary>Nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 17.</textSummary>\n <temperature unitType="metric" units="C" class="low">17</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">80</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi">jeudi</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 25.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 25.</textSummary>\n <temperature unitType="metric" units="C" class="high">25</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">75</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Jeudi soir et nuit">jeudi soir et nuit</period>\n <textSummary>Passages nuageux. Minimum 16.</textSummary>\n <cloudPrecip>\n <textSummary>Passages nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">32</iconCode>\n <pop units="%"/>\n <textSummary>Passages nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 16.</textSummary>\n <temperature unitType="metric" units="C" class="low">16</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi">vendredi</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 19.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 19.</textSummary>\n <temperature unitType="metric" units="C" class="high">19</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">75</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Vendredi soir et nuit">vendredi soir et nuit</period>\n <textSummary>Passages nuageux. Minimum 10.</textSummary>\n <cloudPrecip>\n <textSummary>Passages nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">32</iconCode>\n <pop units="%"/>\n <textSummary>Passages nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 10.</textSummary>\n <temperature unitType="metric" units="C" class="low">10</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi">samedi</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 24.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 24.</textSummary>\n <temperature unitType="metric" units="C" class="high">24</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">50</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Samedi soir et nuit">samedi soir et nuit</period>\n <textSummary>Passages nuageux. Minimum 11.</textSummary>\n <cloudPrecip>\n <textSummary>Passages nuageux.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">32</iconCode>\n <pop units="%"/>\n <textSummary>Passages nuageux</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Minimum 11.</textSummary>\n <temperature unitType="metric" units="C" class="low">11</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">95</relativeHumidity>\n </forecast>\n <forecast>\n <period textForecastName="Dimanche">dimanche</period>\n <textSummary>Alternance de soleil et de nuages. Maximum 22.</textSummary>\n <cloudPrecip>\n <textSummary>Alternance de soleil et de nuages.</textSummary>\n </cloudPrecip>\n <abbreviatedForecast>\n <iconCode format="gif">02</iconCode>\n <pop units="%"/>\n <textSummary>Alternance de soleil et de nuages</textSummary>\n </abbreviatedForecast>\n <temperatures>\n <textSummary>Maximum 22.</textSummary>\n <temperature unitType="metric" units="C" class="high">22</temperature>\n </temperatures>\n <winds/>\n <humidex/>\n <precipitation>\n <textSummary/>\n <precipType start="" end=""/>\n </precipitation>\n <relativeHumidity units="%">55</relativeHumidity>\n </forecast>\n </forecastGroup>\n <hourlyForecastGroup>\n <dateTime name="forecastIssue" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>19</hour>\n <minute>45</minute>\n <timeStamp>20220808194500</timeStamp>\n <textSummary>08 ao\xfbt 2022 19h45 UTC</textSummary>\n </dateTime>\n <dateTime name="forecastIssue" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>15</hour>\n <minute>45</minute>\n <timeStamp>20220808154500</timeStamp>\n <textSummary>08 ao\xfbt 2022 15h45 HAE</textSummary>\n </dateTime>\n <hourlyForecast dateTimeUTC="202208090000">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090100">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090200">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090300">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090400">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090500">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090600">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090700">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090800">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">12</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208090900">\n <condition>Pluie</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">12</temperature>\n <lop category="\xc9lev\xe9e" units="%">100</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091000">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">12</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091100">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">30</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091200">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091300">\n <condition>Pluie intermittente ou bruine</condition>\n <iconCode format="png">12</iconCode>\n <temperature unitType="metric" units="C">13</temperature>\n <lop category="\xc9lev\xe9e" units="%">80</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091400">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091500">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091600">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">14</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091700">\n <condition>Couvert</condition>\n <iconCode format="png">10</iconCode>\n <temperature unitType="metric" units="C">15</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091800">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">15</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208091900">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">16</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092000">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">17</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092100">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">18</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">20</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092200">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">17</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">10</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n <hourlyForecast dateTimeUTC="202208092300">\n <condition>G\xe9n\xe9ralement nuageux</condition>\n <iconCode format="png">03</iconCode>\n <temperature unitType="metric" units="C">17</temperature>\n <lop category="Nulle" units="%">0</lop>\n <windChill unitType="metric"/>\n <humidex/>\n <wind>\n <speed unitType="metric" units="km/h">10</speed>\n <direction windDirFull="Nord-est">NE</direction>\n <gust unitType="metric" units="km/h"/>\n </wind>\n </hourlyForecast>\n </hourlyForecastGroup>\n <yesterdayConditions>\n <temperature unitType="metric" units="C" class="high">28.2</temperature>\n <temperature unitType="metric" units="C" class="low">13.2</temperature>\n <precip unitType="metric" units="mm">0.0</precip>\n </yesterdayConditions>\n <riseSet>\n <disclaimer>Les hours de lever et coucher du soleil sont une estimation seulement et peuvent \xeatre diff\xe9rentes des hours officielles de lever et coucher du soleil disponibles ici ( http://hia-iha.nrc-cnrc.gc.ca/sunrise_f.html )</disclaimer>\n <dateTime name="sunrise" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>09</hour>\n <minute>30</minute>\n <timeStamp>20220808093000</timeStamp>\n <textSummary>08 ao\xfbt 2022 09h30 UTC</textSummary>\n </dateTime>\n <dateTime name="sunrise" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>05</hour>\n <minute>30</minute>\n <timeStamp>20220808053000</timeStamp>\n <textSummary>08 ao\xfbt 2022 05h30 HAE</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="UTC" UTCOffset="0">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="mardi">09</day>\n <hour>00</hour>\n <minute>05</minute>\n <timeStamp>20220809000500</timeStamp>\n <textSummary>09 ao\xfbt 2022 00h05 UTC</textSummary>\n </dateTime>\n <dateTime name="sunset" zone="HAE" UTCOffset="-4">\n <year>2022</year>\n <month name="ao\xfbt">08</month>\n <day name="lundi">08</day>\n <hour>20</hour>\n <minute>05</minute>\n <timeStamp>20220808200500</timeStamp>\n <textSummary>08 ao\xfbt 2022 20h05 HAE</textSummary>\n </dateTime>\n </riseSet>\n <almanac>\n <temperature class="extremeMax" period="1996-2021" unitType="metric" units="C" year="1998">31.1</temperature>\n <temperature class="extremeMin" period="1996-2021" unitType="metric" units="C" year="2009">7.9</temperature>\n <temperature class="normalMax" unitType="metric" units="C"/>\n <temperature class="normalMin" unitType="metric" units="C"/>\n <temperature class="normalMean" unitType="metric" units="C"/>\n <precipitation class="extremeRainfall" period="-" unitType="metric" units="mm" year=""/>\n <precipitation class="extremeSnowfall" period="-" unitType="metric" units="cm" year=""/>\n <precipitation class="extremePrecipitation" period="1996-2021" unitType="metric" units="mm" year="2019">57.7</precipitation>\n <precipitation class="extremeSnowOnGround" period="-" unitType="metric" units="cm" year=""/>\n <pop units="%"/>\n </almanac>\n </siteData>\n\n')
 
                     start_time = time.time()
                     sleep_time = 0.5
@@ -733,9 +737,7 @@ def get_data(retour_thread, get_forecast=False):
             data = url_response.read().decode('utf-8').replace('\t', '').replace('\n', '')
             url_response.close()
             index = data.find('<td>Ouverture de soir</td>') + len('<td>Ouverture de soir</td>')
-            pistes_soir_actuel = re.search("<span>([\d]+\/[\d]+)<span>", data[index:index + 21]).group(1)
-
-            retour_thread['pistes_soir'] = pistes_soir_actuel
+            retour_thread['pistes_soir'] = re.search("<span>([\d]+\/[\d]+)<span>", data[index:index + 21]).group(1)
 
         except Exception as erreur:
             print(erreur)
@@ -880,7 +882,7 @@ def attempt_reconnection():
         os.system("sudo ifconfig wlan0 up")
 
         for it in range(delais_attente, 0, -1):
-            retour_thread['fetching_animation'] = "Attente de {secondes}s".format(secondes=str(it))
+            retour_thread['fetching_animation'] = "Attente de {seconds}s".format(seconds=str(it))
             time.sleep(1)
             if not en_fonction:
                 return False
@@ -897,15 +899,15 @@ def attempt_reconnection():
     return True
 
 
-def seconde_a_couleur(seconde, inverser=False, couleur_random=False):
+def second_a_couleur(second, inverser=False, couleur_random=False):
     color_offset_local = uniform(0, 59) if couleur_random else color_offset
 
-    seconde = (seconde + color_offset_local) % 60
+    second = (second + color_offset_local) % 60
 
     if inverser:
-        seconde = (seconde + 30) % 60
+        second = (second + 30) % 60
 
-    couleur = liste_calculs_couleurs[int(seconde / 10)](seconde % 10)
+    couleur = liste_calculs_couleurs[int(second / 10)](second % 10)
 
     return couleur
 
@@ -920,12 +922,12 @@ def generate_color_transitions(color_scheme):
                 color_variations[it_color] = color_scheme[(it + 1) % len(color_scheme)][it_color] - color_scheme[it][
                     it_color]
 
-        lambda_list.append(lambda seconde, it_lambda=it, variation=color_variations: [
-            color_scheme[it_lambda][0] + int((seconde / 10.0) * variation[0]) if variation[0] else
+        lambda_list.append(lambda second, it_lambda=it, variation=color_variations: [
+            color_scheme[it_lambda][0] + int((second / 10.0) * variation[0]) if variation[0] else
             color_scheme[it_lambda][0],
-            color_scheme[it_lambda][1] + int((seconde / 10.0) * variation[1]) if variation[1] else
+            color_scheme[it_lambda][1] + int((second / 10.0) * variation[1]) if variation[1] else
             color_scheme[it_lambda][1],
-            color_scheme[it_lambda][2] + int((seconde / 10.0) * variation[2]) if variation[2] else
+            color_scheme[it_lambda][2] + int((second / 10.0) * variation[2]) if variation[2] else
             color_scheme[it_lambda][2]])
 
     return lambda_list
@@ -933,7 +935,7 @@ def generate_color_transitions(color_scheme):
 
 def get_text_jour_semaine_couleur():
     if num_jour_semaine == 4:
-        return seconde_a_couleur(seconde_precise, couleur_random=True)
+        return second_a_couleur(second_precise, couleur_random=True)
     else:
         return couleur_fond_inverse
 
@@ -961,7 +963,7 @@ def get_date_et_alignement():
 def render_spinning_image(vitesse_rpm=33):
     duree_un_tour = 60.0 / vitesse_rpm
     correction_360 = 360.0 / duree_un_tour
-    degree_rotation = 360.0 - ((seconde_precise % duree_un_tour) * correction_360)
+    degree_rotation = 360.0 - ((second_precise % duree_un_tour) * correction_360)
 
     rect_image = spinning_image.get_rect(center=(largeur * 0.89, hauteur * 0.75))
     rotated_surface = pygame.transform.rotozoom(spinning_image, degree_rotation, 1)
@@ -974,6 +976,7 @@ def load_loop_image(index):
     global loop_images
     global status_loading_image
     global loop_animation_loaded
+    global loop_animation_loaded_counter
 
     if status_loading_image:
         return True
@@ -998,23 +1001,38 @@ def load_loop_image(index):
     temp_surface = None
     temp_image = None
 
+    pygame.draw.rect(loop_animation_progress_bar_surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else loaded_color,
+                     [index, 0, 1, loop_animation_progress_bar_height])
+
+    loop_animation_progress_bar_smooth_surface.blit(
+        pygame.transform.smoothscale(loop_animation_progress_bar_surface.convert_alpha(),
+                                     [loop_rect.width, loop_animation_progress_bar_height]), [0, 0])
+
     loaded_counter = 0
     for image in loop_images:
         if image:
             loaded_counter += 1
 
-    if loaded_counter == len(loop_images):
+    loop_animation_loaded_counter = loaded_counter
+
+    if loop_animation_loaded_counter == len(loop_images):
         loop_animation_loaded = True
 
     if ClockSettings.DEBUG_MODE:
-        retour_thread['pourcent_pluie'] = str(loaded_counter) + '/' + str(len(loop_images))
+        retour_thread['detailed_info'] = str(loop_animation_loaded_counter) + '/' + str(len(loop_images)) + ' - ' + str(
+            math.ceil((loop_animation_loaded_counter * 100) / len(loop_images))) + '%'
 
     status_loading_image = False
 
 
 def render_loop_image():
     loop_time_left = loop_end_time - maintenant
-    pos_image = (loop_images_len - int(
+
+    # Potential IndexError fix
+    # if loop_time_left > loop_time:
+    #    loop_time_left = loop_time
+
+    pos_image = 0 if peek_animating else (loop_images_len - int(
         AnimationLoopSettings.FPS * loop_time_left.total_seconds()))  # % (loop_images_len + 1)
 
     if loop_backwards:
@@ -1026,13 +1044,24 @@ def render_loop_image():
         distance_right_image = 0
 
         # Find nearest image on the left
-        for it_image in range(0, len(loop_images[0:pos_image])):
-            if loop_images[pos_image - it_image]:
-                break
-            distance_left_image += 1
+        try:
+            for it_image in range(0, len(loop_images[0:pos_image])):
+                if loop_images[pos_image - it_image]:
+                    break
+                distance_left_image += 1
+        except IndexError:
+            print('pos_image should be ' + str(loop_images_len))
+            print('pos_image is ' + str(pos_image))
+            print('loop_backwards is ' + str(loop_backwards))
+            print('loop_time_left.total_seconds() is ' + str(loop_time_left.total_seconds()))
+            print('loop_end_time is ' + str(loop_end_time))
+            print('maintenant is ' + str(maintenant))
+            print('it_image is ' + str(it_image))
+            print('len(loop_images) is ' + str(len(loop_images)))
+            raise
 
         # Find nearest image on the right
-        for it_image in range(0, len(loop_images[pos_image:]) - 1):
+        """for it_image in range(0, len(loop_images[pos_image:]) - 1):
             if loop_images[pos_image + it_image]:
                 break
             distance_right_image += 1
@@ -1041,53 +1070,52 @@ def render_loop_image():
         if distance_left_image <= distance_right_image or not loop_images[pos_image + distance_right_image]:
             pos_image -= distance_left_image
         else:
-            pos_image += distance_right_image
+            pos_image += distance_right_image"""
+        pos_image -= distance_left_image
 
-        # Let animation loop once before smoothing out the rest of it unless we're lagging too much
-        if loop_first_time_completed:
-            if not retour_thread['thread_en_cours'] or not loop_wait_for_data_thread:
-                # Find the biggest gap of unloaded frames and load the one in the middle first
-                unload_biggest_gap_size = 0
-                unload_biggest_gap_pos = 0
-                unload_gap_size = 0
-                unload_gap_pos = 0
+        if not status_loading_image:
+            # Let animation loop once before smoothing out the rest of it unless we're lagging too much
+            if loop_first_time_completed:
+                if not (retour_thread['thread_en_cours'] and loop_wait_for_data_thread):
+                    # Find the biggest gap of unloaded frames and load the one in the middle first
+                    unload_biggest_gap_size = 0
+                    unload_biggest_gap_pos = 0
+                    unload_gap_size = 0
+                    unload_gap_pos = 0
 
-                # Test - close the gap backwards if looping backwards
-                # for it_image in range(0 if not loop_backwards else len(loop_images) - 1, len(loop_images) if not loop_backwards else - 1, 1 if not loop_backwards else - 1):
-                for it_image in range(0, len(loop_images)):
-                    if loop_images[it_image]:
-                        unload_gap_size = 0
-                    else:
-                        if not unload_gap_size:
-                            unload_gap_pos = it_image
-                        unload_gap_size += 1
+                    # Test - close the gap backwards if looping backwards
+                    # for it_image in range(0 if not loop_backwards else len(loop_images) - 1, len(loop_images) if not loop_backwards else - 1, 1 if not loop_backwards else - 1):
+                    for it_image in range(0, len(loop_images)):
+                        if loop_images[it_image]:
+                            unload_gap_size = 0
+                        else:
+                            if not unload_gap_size:
+                                unload_gap_pos = it_image
+                            unload_gap_size += 1
 
-                        if unload_gap_size > unload_biggest_gap_size:
-                            unload_biggest_gap_size = unload_gap_size
-                            unload_biggest_gap_pos = unload_gap_pos
+                            # Finds biggest gap from left to right or right to left depending on loop_backwards, hopefully to load more frames that are coming up
+                            # if (loop_backwards and unload_gap_size >= unload_biggest_gap_size) or (not loop_backwards and unload_gap_size > unload_biggest_gap_size):
+                            if unload_gap_size > unload_biggest_gap_size:
+                                unload_biggest_gap_size = unload_gap_size
+                                unload_biggest_gap_pos = unload_gap_pos
 
-                pos_image_to_load = unload_biggest_gap_pos + (unload_biggest_gap_size // 2)
-                """if loop_backwards:
-                    print('------------')
-                    print('pos_image_to_load: ' + str(pos_image_to_load))
-                    print('unload_biggest_gap_size: ' + str(unload_biggest_gap_size))
-                    print('unload_biggest_gap_pos: ' + str(unload_biggest_gap_pos))
-                    print('unload_gap_size: ' + str(unload_gap_size))
-                    print('unload_gap_pos: ' + str(unload_gap_pos))
-                    print(loop_images)"""
-                load_loop_image_thread = Thread(target=load_loop_image, args=([pos_image_to_load]), daemon=True)
+                    pos_image_to_load = unload_biggest_gap_pos + (unload_biggest_gap_size // 2)
+                    load_loop_image_thread = Thread(target=load_loop_image, args=([pos_image_to_load]), daemon=True)
 
-                if not status_loading_image:
                     load_loop_image_thread.start()
 
-        else:
-            # First loop - Each frame here shouldn't be loaded, try to load the current one if we're not loading another one already
-            if not status_loading_image:
+            else:
+                # First loop - Each frame here shouldn't be loaded, try to load the current one if we're not loading another one already
                 load_loop_image_thread = Thread(target=load_loop_image, args=([pos_image_to_load]), daemon=True)
                 load_loop_image_thread.start()
 
     rect_image = loop_images[pos_image].get_rect(center=(loop_center_x, loop_center_y))
     ecran.blit(loop_images[pos_image], rect_image)
+
+    # Loop animation progress bar
+    if not loop_animation_loaded:
+        ecran.blit(loop_animation_progress_bar_smooth_surface,
+                   [rect_image.left, rect_image.bottom - loop_animation_progress_bar_height])
 
 
 def get_font_ratio(font_path):
@@ -1110,7 +1138,7 @@ def sleep_until_next_frame():
     pygame.display.update()
     duree_frame = (datetime.datetime.now() - maintenant).total_seconds()
 
-    if ClockSettings.FRAMERATE and duree_frame <= 1:
+    if ClockSettings.FRAMERATE and duree_frame <= 1 and not (peek_animating or not en_fonction):
         # On diminue le sleep au cas ou la frame prends du temps a faire
         sleep_time = (1.0 / ClockSettings.FRAMERATE - duree_frame)
 
@@ -1140,9 +1168,6 @@ def get_raindrop(freezing, drizzle):
     else:
         surface = raindrop_normal_surface
 
-    if ClockSettings.LOW_FRAMERATE_MODE:
-        vit_y = vit_y * 0.5
-
     return {'pos_y': int(-randint(10, 50) * size_mult),
             'pos_x': randint(-largeur // 4, largeur),
             'vit_y': vit_y,
@@ -1154,25 +1179,26 @@ def get_raindrop(freezing, drizzle):
 
 def render_snowing():
     global wind_speed
-    if changement_seconde:
+    if changement_second:
         wind_speed = randint(-largeur // 10, largeur // 10)
         for snowflake in snowflake_list:
             if snowflake['pos_y'] > hauteur:
                 snowflake_list.remove(snowflake)
-        if retour_thread['weather_animation']:
+        if retour_thread['weather_animation'] and len(snowflake_list) < 15:
             snowflake_list.append(get_snowflake())
 
     snowflake_radius = int(7 * size_mult)
 
+    snowflake_movement = duree_last_frame if duree_last_frame < 0.1 else 0.1
+
     for snowflake in snowflake_list:
-        if not changement_heure:
-            wind_effect = snowflake['vit_x'] + (wind_speed * (1.5 - snowflake['weight'])) * duree_last_frame
+        wind_effect = snowflake['vit_x'] + (wind_speed * (1.5 - snowflake['weight'])) * snowflake_movement
 
-            if abs(wind_effect) < largeur // (15 * snowflake['weight']):
-                snowflake['vit_x'] = wind_effect
+        if abs(wind_effect) < largeur // (15 * snowflake['weight']):
+            snowflake['vit_x'] = wind_effect
 
-            snowflake['pos_y'] += snowflake['vit_y'] * duree_last_frame
-            snowflake['pos_x'] = (snowflake['pos_x'] + snowflake['vit_x'] * duree_last_frame) % largeur
+        snowflake['pos_y'] += snowflake['vit_y'] * snowflake_movement
+        snowflake['pos_x'] = (snowflake['pos_x'] + snowflake['vit_x'] * snowflake_movement) % largeur
 
         if snowflake['pos_x'] < snowflake_radius:
             pygame.draw.circle(ecran, [255, 255, 255], [int(largeur + snowflake['pos_x']), int(snowflake['pos_y'])],
@@ -1194,10 +1220,12 @@ def render_raining(freezing=False, drizzle=False):
             if drop['pos_y'] > hauteur or drop['pos_x'] > largeur:
                 raindrop_list.remove(drop)
 
+    raindrop_movement = duree_last_frame if duree_last_frame < 0.1 else 0.1
+
     for drop in raindrop_list:
-        if not changement_heure:
-            drop['pos_y'] += drop['vit_y'] * duree_last_frame
-            drop['pos_x'] += drop['vit_x'] * duree_last_frame
+        if not changement_hour:
+            drop['pos_y'] += drop['vit_y'] * raindrop_movement
+            drop['pos_x'] += drop['vit_x'] * raindrop_movement
 
         if drop['pos_x'] + drop['width'] >= 0 and drop['pos_y'] + drop['height'] >= 0:
             ecran.blit(drop['surface'], [drop['pos_x'], drop['pos_y']])
@@ -1312,11 +1340,15 @@ pygame.display.set_caption('A cute little clock')
 pygame.mouse.set_visible(False)
 mouse_button_down_time = 0
 
+brighter_peek = False
+loading_color = [100, 100, 100] if brighter_peek else [25, 25, 25]
+loaded_color = [255, 255, 255] if brighter_peek else [128, 128, 128]
+
 peek_surface = pygame.Surface(resolution)
 
 peek_rect = pygame.Rect([0, 0, 0, 0])
 peek_blit_list = []
-pygame.draw.circle(peek_surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
+pygame.draw.circle(peek_surface, loading_color, [largeur // 2, hauteur // 2], int(hauteur / 2 - 8 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(120.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(84.5 * size_mult), int(5 * size_mult))
 pygame.draw.circle(peek_surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(40.5 * size_mult), int(5 * size_mult))
@@ -1331,12 +1363,11 @@ loading_progress_status = loading_smooth_checkpoints[loading_checkpoint]
 loading_checkpoint += 1
 
 if not ClockSettings.ENABLE_LOADING_ANIMATION:
-    if DisplaySettings.FULLSCREEN:
-        if ClockSettings.ANDROID_MODE:
-            ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN | pygame.SCALED)
-        else:
-            ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
-            ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
+    if ClockSettings.ANDROID_MODE:
+        ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN | pygame.SCALED)
+    elif DisplaySettings.FULLSCREEN:
+        ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
+        ecran = pygame.display.set_mode(resolution, pygame.FULLSCREEN)
     elif DisplaySettings.BORDERLESS_WINDOW:
         ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
         ecran = pygame.display.set_mode((1, 1))
@@ -1393,6 +1424,8 @@ couleur_fond_inverse = [255 - couleur_fond[0], 255 - couleur_fond[1], 255 - coul
 
 import math, datetime, urllib.request, urllib.error, urllib.parse, xmltodict, json, ssl, csv, re, io
 from random import randint, uniform
+
+pygame.display.update()
 
 pygame.font.init()
 
@@ -1494,33 +1527,26 @@ color_schemes = [
      [200, 0, 0],
      [255, 255, 200]],
     # GTA-6
-    [[50, 95, 210],
-     [165, 95, 210],
-     [255, 115, 170],
-     [245, 135, 115],
-     [215, 125, 60],
-     [165, 95, 210]],
-    # Reece-1
+    [[63, 117, 255],
+     [202, 107, 255],
+     [255, 95, 208],
+     [255, 126, 152],
+     [255, 149, 72],
+     [255, 182, 72]],
+    # Reece
     [[253, 3, 99],
      [204, 9, 93],
      [156, 16, 87],
      [107, 22, 80],
      [59, 29, 74],
      [10, 35, 68]],
-    # Reece-2
-    [[142, 202, 230],
-     [33, 158, 188],
-     [2, 48, 71],
-     [255, 183, 3],
-     [253, 158, 2],
-     [251, 133, 0]],
-    # Reece-3
-    [[0, 0, 0],
-     [31, 42, 45],
-     [0, 128, 170],
-     [220, 230, 232],
-     [255, 255, 255],
-     [255, 208, 39]]]
+    # Easter
+    [[255, 255, 0],
+     [0, 255, 255],
+     [255, 0, 255],
+     [255, 255, 0],
+     [0, 255, 255],
+     [255, 0, 255]]]
 
 for it in range(len(color_schemes)):
     color_schemes[it] = generate_color_transitions(color_schemes[it])
@@ -1669,7 +1695,111 @@ menu_surface.blit(color_switch_surfaces[active_color_scheme][0],
                   [color_switch_rect.left - menu_rect.left, color_switch_rect.top - menu_rect.top])
 
 # ---------------------------------------------------------------------------------------- #
+# -----------------------------------CREATING LISTS OF LINES FOR DRAWING---------------------------------- #
+lines_seconds_start = 121 * size_mult
+lines_seconds_end = 150 * size_mult
 
+lines_minutes_start = 86 * size_mult
+lines_minutes_end = 115 * size_mult
+
+lines_hours_start = 41 * size_mult
+lines_hours_end = 80 * size_mult
+
+# Lines seconds
+degree_second_ligne = math.radians(315)
+lines_increment = 0
+tip_1 = ((largeur / 2) + math.cos(degree_second_ligne) * lines_seconds_end,
+         (hauteur / 2) + math.sin(degree_second_ligne) * lines_seconds_end)
+
+degree_second_ligne = math.radians(315 + lines_increment)
+tip_2 = ((largeur / 2) + math.cos(degree_second_ligne) * lines_seconds_end,
+         (hauteur / 2) + math.sin(degree_second_ligne) * lines_seconds_end)
+
+while 1 > math.sqrt((tip_2[0] - tip_1[0]) ** 2 + (tip_2[1] - tip_1[1]) ** 2):
+    lines_increment += 0.01
+    degree_second_ligne = math.radians(315 + lines_increment)
+    tip_2 = ((largeur / 2) + math.cos(degree_second_ligne) * lines_seconds_end,
+             (hauteur / 2) + math.sin(degree_second_ligne) * lines_seconds_end)
+
+lines_increment -= 0.01
+lines_amount = int(360 / lines_increment)
+lines_seconds = []
+
+for it in range(0, lines_amount):
+    degree_second_ligne = math.radians((it / lines_amount) * 360 - 90)
+    lines_seconds.append([(int((largeur / 2) + math.cos(degree_second_ligne) * lines_seconds_end),
+                           int((hauteur / 2) + math.sin(degree_second_ligne) * lines_seconds_end)), (
+                              int((largeur / 2) + math.cos(degree_second_ligne) * lines_seconds_start),
+                              int((hauteur / 2) + math.sin(degree_second_ligne) * lines_seconds_start))])
+# End lines seconds
+
+# Lines minutes
+degree_minute_ligne = math.radians(315)
+lines_increment = 0
+tip_1 = ((largeur / 2) + math.cos(degree_minute_ligne) * lines_minutes_end,
+         (hauteur / 2) + math.sin(degree_minute_ligne) * lines_minutes_end)
+
+degree_minute_ligne = math.radians(315 + lines_increment)
+tip_2 = ((largeur / 2) + math.cos(degree_minute_ligne) * lines_minutes_end,
+         (hauteur / 2) + math.sin(degree_minute_ligne) * lines_minutes_end)
+
+while 1 > math.sqrt((tip_2[0] - tip_1[0]) ** 2 + (tip_2[1] - tip_1[1]) ** 2):
+    lines_increment += 0.01
+    degree_minute_ligne = math.radians(315 + lines_increment)
+    tip_2 = ((largeur / 2) + math.cos(degree_minute_ligne) * lines_minutes_end,
+             (hauteur / 2) + math.sin(degree_minute_ligne) * lines_minutes_end)
+
+lines_increment -= 0.01
+lines_amount = int(360 / lines_increment)
+lines_minutes = []
+
+for it in range(0, lines_amount):
+    degree_minute_ligne = math.radians((it / lines_amount) * 360 - 90)
+    lines_minutes.append([(int((largeur / 2) + math.cos(degree_minute_ligne) * lines_minutes_end),
+                           int((hauteur / 2) + math.sin(degree_minute_ligne) * lines_minutes_end)), (
+                              int((largeur / 2) + math.cos(degree_minute_ligne) * lines_minutes_start),
+                              int((hauteur / 2) + math.sin(degree_minute_ligne) * lines_minutes_start))])
+# End lines minutes
+
+# Lines hours
+degree_hours_ligne = math.radians(315)
+lines_increment = 0
+tip_1 = ((largeur / 2) + math.cos(degree_hours_ligne) * lines_hours_end,
+         (hauteur / 2) + math.sin(degree_hours_ligne) * lines_hours_end)
+
+degree_hours_ligne = math.radians(315 + lines_increment)
+tip_2 = ((largeur / 2) + math.cos(degree_hours_ligne) * lines_hours_end,
+         (hauteur / 2) + math.sin(degree_hours_ligne) * lines_hours_end)
+
+while 1 > math.sqrt((tip_2[0] - tip_1[0]) ** 2 + (tip_2[1] - tip_1[1]) ** 2):
+    lines_increment += 0.01
+    degree_hours_ligne = math.radians(315 + lines_increment)
+    tip_2 = ((largeur / 2) + math.cos(degree_hours_ligne) * lines_hours_end,
+             (hauteur / 2) + math.sin(degree_hours_ligne) * lines_hours_end)
+
+lines_increment -= 0.01
+lines_amount = int(360 / lines_increment)
+lines_hours = []
+
+for it in range(0, lines_amount):
+    degree_hours_ligne = math.radians((it / lines_amount) * 360 - 90)
+    lines_hours.append([((largeur / 2) + math.cos(degree_hours_ligne) * lines_hours_end,
+                         (hauteur / 2) + math.sin(degree_hours_ligne) * lines_hours_end), (
+                            (largeur / 2) + math.cos(degree_hours_ligne) * lines_hours_start,
+                            (hauteur / 2) + math.sin(degree_hours_ligne) * lines_hours_start)])
+# End lines hours
+
+lines_seconds_black_index = 0
+lines_seconds_color_index = 0
+lines_seconds_last_black_index = lines_seconds_black_index
+lines_seconds_last_color_index = lines_seconds_color_index
+
+lines_minutes_index = 0
+lines_minutes_current_index = 0
+
+lines_hours_index = 0
+lines_hours_current_index = 0
+# ----------------------------------------------------------------------------------------------------     #
 if os.path.exists(os.path.join(clock_files_folder, 'exit_splash.png')):
     desktop_img = pygame.image.load(os.path.join(clock_files_folder, 'exit_splash.png'))
     desktop_img = pygame.transform.smoothscale(desktop_img.convert_alpha(), resolution)
@@ -1718,8 +1848,10 @@ if AnimationLoopSettings.ENABLED:
     loop_center_y = int(hauteur * (AnimationLoopSettings.CENTER_Y_PERCENT / 100.0))
     loop_backwards = False
     loop_animation_loaded = False
+    loop_animation_loaded_counter = 0
     loop_first_time_completed = False
     loop_wait_for_data_thread = False
+    loop_animation_progress_bar_height = math.ceil(1.1 * size_mult)
 
     loop_directory = os.path.join(clock_files_folder, os.path.join('animations', AnimationLoopSettings.DIRECTORY))
     loop_images_filenames = os.listdir(loop_directory)
@@ -1765,33 +1897,54 @@ if AnimationLoopSettings.ENABLED:
 
             pygame.display.update()
 
+    if AnimationLoopSettings.BOTTOM_RIGHT_CORNER:
+        loop_rect = loop_images[0].get_rect()
+        loop_center_x = int(largeur - loop_rect.width / 2)
+        loop_center_y = int(hauteur - loop_rect.height / 2)
+
     temp_surface = None
     temp_image = None
     loop_rect = loop_images[0].get_rect(center=(loop_center_x, loop_center_y))
     loop_images_len = len(loop_images) - 1
     loop_time = loop_images_len / AnimationLoopSettings.FPS
+
+    loop_animation_progress_bar_scale = 1
+
+    loop_animation_progress_bar_surface = pygame.Surface([len(loop_images), loop_animation_progress_bar_height])
+    pygame.draw.rect(loop_animation_progress_bar_surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else loading_color,
+                     [0, 0, len(loop_images), loop_animation_progress_bar_height])
+    pygame.draw.rect(loop_animation_progress_bar_surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else loaded_color,
+                     [0, 0, 1, loop_animation_progress_bar_height])
+    loop_animation_progress_bar_smooth_surface = pygame.Surface([loop_rect.width, loop_animation_progress_bar_height])
+    loop_animation_progress_bar_rect = loop_animation_progress_bar_surface.get_rect()
+    loop_animation_progress_bar_smooth_surface.blit(
+        pygame.transform.smoothscale(loop_animation_progress_bar_smooth_surface.convert_alpha(),
+                                     [loop_rect.width, loop_animation_progress_bar_height]), [0, 0])
+
 else:
     loop_rect = pygame.Rect([largeur, hauteur, 1, 1])
+    loop_animation_loaded = True
+    loop_first_time_completed = True
 # ---------------------------------------------------------------------------------------- #
 loading_progress_status = 97
 next_section_loading_amount = 3
 # -----------------------------------LOADING WEATHER ICONS---------------------------------- #
 weather_directory = os.path.join(clock_files_folder, 'weather_icons')
-images_filenames = os.listdir(weather_directory)
-images_filenames.sort()
+weather_images_filenames = os.listdir(weather_directory)
+weather_images_filenames.sort()
 
 weather_icons = {}
 
-for index in range(0, len(images_filenames)):
-    status_loading_text = 'Icônes de météo: ' + str(index + 1) + '/' + str(len(images_filenames))
+for index in range(0, len(weather_images_filenames)):
+    status_loading_text = 'Icônes de météo: ' + str(index + 1) + '/' + str(len(weather_images_filenames))
 
-    temp_image = pygame.image.load(os.path.join(weather_directory, images_filenames[index]))
-    # weather_icons[images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
+    temp_image = pygame.image.load(os.path.join(weather_directory, weather_images_filenames[index]))
+    # weather_icons[weather_images_filenames[index]] = pygame.transform.rotozoom(temp_image, 0, 0.6 * size_mult).convert_alpha()
     image_size = (
         int(temp_image.get_rect().width * 0.6 * size_mult), int(temp_image.get_rect().height * 0.6 * size_mult))
-    weather_icons[images_filenames[index]] = pygame.transform.smoothscale(temp_image.convert_alpha(),
-                                                                          image_size).convert_alpha()
-    loading_progress_status += next_section_loading_amount / len(images_filenames)
+    weather_icons[weather_images_filenames[index]] = pygame.transform.smoothscale(temp_image.convert_alpha(),
+                                                                                  image_size).convert_alpha()
+    loading_progress_status += next_section_loading_amount / len(weather_images_filenames)
 # ---------------------------------------------------------------------------------------- #
 loading_progress_status = 100
 
@@ -1799,40 +1952,40 @@ maintenant = datetime.datetime.now()
 
 loop_end_time = maintenant
 
-heure = maintenant.hour
+hour = maintenant.hour
 
 minute = maintenant.minute
 
-seconde = maintenant.second
+second = maintenant.second
 
 millisec = maintenant.microsecond
 
-seconde_precise = seconde + millisec / 1000000.0
+second_precise = second + millisec / 1000000.0
 
-eloignement_secondes = int(10 * size_mult)
+eloignement_seconds = int(10 * size_mult)
 
 eloignement_minutes = int(46 * size_mult)
 
-eloignement_heures = int(81 * size_mult)
+eloignement_hours = int(81 * size_mult)
 
 if largeur > hauteur:
-    rect_couleurs_secondes = [(largeur // 2) - (hauteur // 2) + eloignement_secondes, eloignement_secondes,
-                              hauteur - eloignement_secondes * 2, hauteur - eloignement_secondes * 2]
-    rect_arc_secondes = [(largeur // 2) - (hauteur // 2) + eloignement_secondes - 2, eloignement_secondes - 2,
-                         hauteur - ((eloignement_secondes - 2) * 2), hauteur - ((eloignement_secondes - 2) * 2)]
+    rect_couleurs_seconds = [(largeur // 2) - (hauteur // 2) + eloignement_seconds, eloignement_seconds,
+                             hauteur - eloignement_seconds * 2, hauteur - eloignement_seconds * 2]
+    rect_arc_seconds = [(largeur // 2) - (hauteur // 2) + eloignement_seconds - 2, eloignement_seconds - 2,
+                        hauteur - ((eloignement_seconds - 2) * 2), hauteur - ((eloignement_seconds - 2) * 2)]
     rect_arc_minutes = [(largeur // 2) - (hauteur // 2) + eloignement_minutes, eloignement_minutes,
                         hauteur - eloignement_minutes * 2, hauteur - eloignement_minutes * 2]
-    rect_arc_heures = [(largeur // 2) - (hauteur // 2) + eloignement_heures, eloignement_heures,
-                       hauteur - eloignement_heures * 2, hauteur - eloignement_heures * 2]
+    rect_arc_hours = [(largeur // 2) - (hauteur // 2) + eloignement_hours, eloignement_hours,
+                      hauteur - eloignement_hours * 2, hauteur - eloignement_hours * 2]
 else:
-    rect_couleurs_secondes = [eloignement_secondes, (hauteur // 2) - (largeur // 2) + eloignement_secondes,
-                              largeur - eloignement_secondes * 2, largeur - eloignement_secondes * 2]
-    rect_arc_secondes = [eloignement_secondes - 2, (hauteur // 2) - (largeur // 2) + eloignement_secondes - 2,
-                         largeur - ((eloignement_secondes - 2) * 2), largeur - ((eloignement_secondes - 2) * 2)]
+    rect_couleurs_seconds = [eloignement_seconds, (hauteur // 2) - (largeur // 2) + eloignement_seconds,
+                             largeur - eloignement_seconds * 2, largeur - eloignement_seconds * 2]
+    rect_arc_seconds = [eloignement_seconds - 2, (hauteur // 2) - (largeur // 2) + eloignement_seconds - 2,
+                        largeur - ((eloignement_seconds - 2) * 2), largeur - ((eloignement_seconds - 2) * 2)]
     rect_arc_minutes = [eloignement_minutes, (hauteur // 2) - (largeur // 2) + eloignement_minutes,
                         largeur - eloignement_minutes * 2, largeur - eloignement_minutes * 2]
-    rect_arc_heures = [eloignement_heures, (hauteur // 2) - (largeur // 2) + eloignement_heures,
-                       largeur - eloignement_heures * 2, largeur - eloignement_heures * 2]
+    rect_arc_hours = [eloignement_hours, (hauteur // 2) - (largeur // 2) + eloignement_hours,
+                      largeur - eloignement_hours * 2, largeur - eloignement_hours * 2]
 
 en_fonction = True
 
@@ -1840,26 +1993,28 @@ maintenant_precedent = -1
 
 minute_precedente = -1
 
-heure_precedente = -1
+hour_precedente = -1
 
-seconde_precedente = -1
+second_precedente = -1
 
-changement_heure = False
+changement_hour = False
 
 changement_minute = False
 
-changement_seconde = False
+changement_second = False
 
 toggle_menu = False
 toggle_brightness = False
 
 draw_middle_circle = True
+time_change_detected = False
 refresh_requested = False
 first_frame = True
 frame_counter = 0
 
 arc_cleanup_status = (2 * size_mult)
-do_arc_cleanup = True
+arc_cleanup_color = [0, 0, 0]
+do_arc_cleanup = False
 
 color_wheel_active = False
 color_wheel_angle = 0
@@ -1875,7 +2030,7 @@ texte = font_17.render('INITIAL TEXT', 0, [255, 255, 255])
 texte_rect = texte.get_rect()
 
 text_dict = {'temps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
-             'seconde': {'text': 'INITIAL TEXT', 'surface': texte, 'rotated_surface': texte, 'rect': texte_rect},
+             'second': {'text': 'INITIAL TEXT', 'surface': texte, 'rotated_surface': texte, 'rect': texte_rect},
              'detailed_info': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_rect},
              'temperature': {'text': 'INITIAL TEXT', 'surface': texte, 'wiggle_surface': texte, 'rect': texte_rect,
                              'wiggle_rect': texte_rect},
@@ -1903,18 +2058,18 @@ text_dict = {'temps': {'text': 'INITIAL TEXT', 'surface': texte, 'rect': texte_r
 
 current_info_text = None
 previous_info_text = None
-# seconde_surfaces = {}
+# second_surfaces = {}
 
 # for it in range(0, 360):
 #     texte = font_25.render(' ' + str(int(it/6)) + ' ', True, [255, 255, 255])
 #     for it2 in range(0, 10):
-#         seconde_surfaces[str(it) + '.' + str(it2)] = pygame.transform.rotozoom(texte, -float(str(it) + '.' + str(it2)) + (180 if 45 > it/6 > 15 else 0), 1)
+#         second_surfaces[str(it) + '.' + str(it2)] = pygame.transform.rotozoom(texte, -float(str(it) + '.' + str(it2)) + (180 if 45 > it/6 > 15 else 0), 1)
 #
-# seconde_surfaces['360.0'] = seconde_surfaces['359.9']
+# second_surfaces['360.0'] = second_surfaces['359.9']
 
 # for it in range(0, 360):
 #     texte = font_25.render(' ' + str(int(it/6)) + ' ', True, [255, 255, 255])
-#     seconde_surfaces[str(it)] = pygame.transform.rotozoom(texte, -it + (180 if 45 > it/6 > 15 else 0), 1)
+#     second_surfaces[str(it)] = pygame.transform.rotozoom(texte, -it + (180 if 45 > it/6 > 15 else 0), 1)
 
 
 ssl_context = ssl._create_unverified_context()
@@ -1923,7 +2078,7 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C",
                                  {'couleur': couleur_fond_inverse, 'wiggle': 1.5 if ClockSettings.DEBUG_MODE else 0}],
                  'pourcent_pluie': '##%' if ClockSettings.DEBUG_MODE else ' ',
                  'detailed_info': "Conditions actuelles",
-                 'weather_icon': "10.png" if ClockSettings.DEBUG_MODE else "",
+                 'weather_icon': "00.png" if ClockSettings.DEBUG_MODE else "",
                  'pistes_soir': "##/##",
                  'river_height': "##.##m",
                  'valeur_bitcoin': "####.##$",
@@ -2025,12 +2180,14 @@ raindrop_drizzle_surface.set_colorkey([0, 0, 0])
 pygame.draw.line(raindrop_drizzle_surface, drop_color, [int(drop_thicc / 2), 0],
                  [drop_angle + int(drop_thicc / 2), drop_length], drop_thicc)
 
-notification_active = False
+notification_active = None
+notification_last_refresh = maintenant
+midi_couleur = [0, 0, 0]
 
 notifications = {"11:55": ["À LA", "BOUFFE"],
                  "15:59": ["BON", "J'DÉCRISS"]}
 
-couleur_arc_secondes = [0, 0, 0]
+couleur_arc_seconds = [0, 0, 0]
 
 peek_animating = False
 peek_radius = 0
@@ -2147,9 +2304,7 @@ while en_fonction:
                         active_color_scheme = active_color_scheme + 1 if active_color_scheme < len(
                             color_schemes) - 1 else 0
                         liste_calculs_couleurs = color_schemes[active_color_scheme]
-                        # liste_calculs_couleurs = color_schemes.pop()
-                        # color_schemes.insert(0, liste_calculs_couleurs)
-                        # get_color_switch_surface()
+
                         menu_surface.blit(color_switch_surfaces[active_color_scheme][0],
                                           [color_switch_rect.left - menu_rect.left,
                                            color_switch_rect.top - menu_rect.top])
@@ -2178,53 +2333,52 @@ while en_fonction:
 
     temps = time.strftime("%H:%M")
 
-    heure = maintenant.hour
+    hour = maintenant.hour
 
-    if heure > 11:
-        heure -= 12
+    if hour > 11:
+        hour -= 12
 
     minute = maintenant.minute
 
-    changement_heure = abs(maintenant - maintenant_precedent).total_seconds() > 0.5
+    changement_hour = abs(maintenant - maintenant_precedent).total_seconds() > 20
 
-    if changement_heure:
+    if changement_hour:
         print("Time change detected")
         draw_middle_circle = True
+        time_change_detected = True
 
-    heure_precedente = heure
+    hour_precedente = hour
 
     if minute != minute_precedente:
         # A chaque minute
         changement_minute = True
-        notification_active = temps in list(notifications.keys())
+        notification_active = temps if temps in list(notifications.keys()) else None
     else:
         changement_minute = False
 
     minute_precedente = minute
 
-    seconde_precedente = seconde
+    second_precedente = second
 
-    seconde = maintenant.second
+    second = maintenant.second
 
-    changement_seconde = seconde_precedente != seconde
+    changement_second = second_precedente != second
 
     millisec = maintenant.microsecond / 1000000.0
 
-    seconde_precise = seconde + millisec
+    second_precise = second + millisec
 
-    minute_changeante = minute + seconde_precise / 60.0
+    minute_changeante = minute + second_precise / 60.0
 
-    heure_changeante = heure + minute_changeante / 60.0
+    hour_changeante = hour + minute_changeante / 60.0
 
-    degree_secondes = ((360 * seconde_precise) / 60)
-
+    degree_seconds = ((360 * second_precise) / 60)
     degree_minutes = ((360 * minute_changeante) / 60)
+    degree_hours = ((360 * hour_changeante) / 12)
 
+    degree_second_ligne = math.radians(degree_minutes - 90)
     degree_minute_ligne = math.radians(degree_minutes - 90)
-
-    degree_heures = ((360 * heure_changeante) / 12)
-
-    degree_heures_ligne = math.radians(degree_heures - 90)
+    degree_hours_ligne = math.radians(degree_hours - 90)
 
     if peek_animating:
         peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
@@ -2235,7 +2389,7 @@ while en_fonction:
 
         if peek_status >= peek_delay:
             peek_radius = int((peek_status - peek_delay) * 250 * size_mult)
-            peek_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [largeur // 2, hauteur // 2],
+            peek_rect = pygame.draw.circle(peek_surface, loaded_color, [largeur // 2, hauteur // 2],
                                            peek_radius + int(5 * size_mult))
             pygame.draw.circle(peek_surface, [100, 50, 0], [largeur // 2, hauteur // 2], peek_radius)
             ecran.set_clip(peek_rect)
@@ -2262,24 +2416,30 @@ while en_fonction:
                 peek_animating = False
                 Thread(target=get_data, args=(retour_thread, True), daemon=True).start()
 
-    if do_arc_cleanup and minute < 1:
+    debug_arc_cleanup = False
+    do_arc_cleanup = True if debug_arc_cleanup else do_arc_cleanup
+
+    if do_arc_cleanup and minute < 1 or debug_arc_cleanup:
         if changement_minute:
             num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
             text_dict['noms_mois']['text'] = 'update me'
             text_dict['num_jour']['text'] = 'update me'
             text_dict['noms_jours_semaine']['text'] = 'update me'
 
-        cleanup_size = (80 * size_mult) if heure == 0 else (39 * size_mult)
+        cleanup_size = (80 * size_mult) if hour == 0 else (35 * size_mult)
         arc_cleanup_status += (arc_cleanup_status * duree_last_frame)
 
         arc_cleanup_status = arc_cleanup_status if arc_cleanup_status < cleanup_size else cleanup_size
 
-        pygame.draw.circle(surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(119 * size_mult),
+        pygame.draw.circle(surface, arc_cleanup_color, [largeur // 2, hauteur // 2], int(119 * size_mult),
                            int(arc_cleanup_status))
 
         if arc_cleanup_status >= cleanup_size:
             arc_cleanup_status = (2 * size_mult)
             do_arc_cleanup = False
+
+            if debug_arc_cleanup:
+                arc_cleanup_color = [0, (second_precise % 10) * 25, 0]
 
     elif minute > 0 and not do_arc_cleanup:
         do_arc_cleanup = True
@@ -2319,153 +2479,169 @@ while en_fonction:
                 temps = str(int(color_wheel_angle))
 
             color_offset = color_wheel_angle / 6
-        else:
+        elif not time_change_detected:
             pygame.draw.rect(surface, [100, 100, 100] if ClockSettings.DEBUG_MODE else couleur_fond,
                              [0, 0, largeur, hauteur])
 
-        pygame.draw.circle(surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(155 * size_mult))
-        pygame.draw.circle(surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(36 * size_mult))
         if not color_wheel_active:
             num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
             text_dict['noms_mois']['text'] = 'update me'
             text_dict['num_jour']['text'] = 'update me'
             text_dict['noms_jours_semaine']['text'] = 'update me'
 
-        # Secondes
-        # for it in range(1 if color_wheel_active else 2, 104 if color_wheel_active else 107):
-        for it in range(2, 105 if color_wheel_active else 106):
-            use_current_color = it == 105
-            it = int(((seconde_precise + 8.5) * 2) + it) % 120
+        if time_change_detected:
+            time_change_detected = False
 
-            couleur_pour_secondes = seconde_a_couleur(seconde_precise) if use_current_color else seconde_a_couleur(
-                it / 2.0)
+            pygame.draw.circle(surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(119 * size_mult))
+            pygame.draw.circle(surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(36 * size_mult))
 
-            pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
-                            math.radians(111 - ((360 * (it / 2.0)) / 60)),
-                            math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
+            # Seconds - Removing black arc and redrawing it at new location
+            lines_seconds_last_black_index = lines_seconds_black_index
+            lines_seconds_last_color_index = lines_seconds_color_index
+            lines_seconds_black_index = int((((second_precise + 3.25) % 60) * len(lines_seconds)) / 60)
+            lines_seconds_color_index = int((((second_precise + 56.75) % 60) * len(lines_seconds)) / 60)
 
-            if not color_wheel_active:
-                pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
-                                math.radians(111.5 - ((360 * (it / 2.0)) / 60)),
-                                math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
-                pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes,
-                                math.radians(112 - ((360 * (it / 2.0)) / 60)),
-                                math.radians(123 - ((360 * (it / 2.0)) / 60)), int(30 * size_mult))
+            # Remove black arc and replace it with colors
+            if lines_seconds_last_black_index >= lines_seconds_last_color_index:
+                lines_seconds_draw_gap = lines_seconds_last_black_index - lines_seconds_last_color_index
+            else:
+                lines_seconds_draw_gap = lines_seconds_last_black_index + (
+                            len(lines_seconds) - lines_seconds_last_color_index - 1)
 
-        # Minutes et heures
-        pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
-                        math.radians(90 - degree_minutes),
-                        math.radians(90), int(28 * size_mult))
+            for it in range(0, lines_seconds_draw_gap + 1):
+                pygame.draw.line(surface, [0, 0, 255] if ClockSettings.DEBUG_MODE else second_a_couleur(
+                    ((lines_seconds_last_color_index + it) * 60) / len(lines_seconds)),
+                                 lines_seconds[(lines_seconds_last_color_index + it) % (len(lines_seconds) - 1)][0],
+                                 lines_seconds[(lines_seconds_last_color_index + it) % (len(lines_seconds) - 1)][1], 3)
 
-        # If >= 0.5 car à 0 ça fait un arc complet a cause du offset des arcs redessinés
-        if degree_minutes >= 1 and not color_wheel_active:
-            pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
-                            math.radians(90.5 - degree_minutes),
-                            math.radians(90), int(28 * size_mult))
-            pygame.draw.arc(surface, seconde_a_couleur(minute_changeante, inverser=True), rect_arc_minutes,
-                            math.radians(91 - degree_minutes),
-                            math.radians(90), int(28 * size_mult))
+            # Draw new black arc
+            if lines_seconds_black_index >= lines_seconds_color_index:
+                lines_seconds_draw_gap = lines_seconds_black_index - lines_seconds_color_index
+            else:
+                lines_seconds_draw_gap = lines_seconds_black_index + (
+                            len(lines_seconds) - lines_seconds_color_index - 1)
 
-        pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
-                        math.radians(90 - degree_heures),
-                        math.radians(90), int(38 * size_mult))
+            for it in range(0, lines_seconds_draw_gap + 1):
+                pygame.draw.line(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else [0, 0, 0],
+                                 lines_seconds[(lines_seconds_color_index + it) % (len(lines_seconds) - 1)][0],
+                                 lines_seconds[(lines_seconds_color_index + it) % (len(lines_seconds) - 1)][1], 3)
 
-        # If >= 0.5 car à 0 ça fait un arc complet a cause du offset des arcs redessinés
-        if degree_heures >= 1 and not color_wheel_active:
-            pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
-                            math.radians(90.5 - degree_heures),
-                            math.radians(90), int(38 * size_mult))
-            pygame.draw.arc(surface, seconde_a_couleur((heure_changeante * 60) / 12), rect_arc_heures,
-                            math.radians(91 - degree_heures),
-                            math.radians(90), int(38 * size_mult))
+        else:
+            pygame.draw.circle(surface, [0, 0, 0], [largeur // 2, hauteur // 2], int(155 * size_mult))
+            pygame.draw.circle(surface, [25, 25, 25], [largeur // 2, hauteur // 2], int(36 * size_mult))
 
+            # Seconds - Drawing whole arc
+            lines_seconds_black_index = int((((second_precise + 3.25) % 60) * len(lines_seconds)) / 60)
+            lines_seconds_color_index = int((((second_precise + 56.75) % 60) * len(lines_seconds)) / 60)
+            lines_seconds_last_black_index = lines_seconds_black_index
+            lines_seconds_last_color_index = lines_seconds_color_index
+
+            it = (lines_seconds_black_index + 1) % len(lines_seconds)
+            while it != lines_seconds_color_index:
+                it = (it + 1) % len(lines_seconds)
+                couleur_pour_seconds = second_a_couleur((it * 60) / len(lines_seconds))
+                pygame.draw.line(surface, couleur_pour_seconds, lines_seconds[it][0], lines_seconds[it][1], 3)
+
+        # Minutes - Drawing whole arc
+        lines_minutes_index = 0
+        lines_minutes_current_index = int((degree_minutes / 360) * len(lines_minutes))
+        couleur_pour_minutes = second_a_couleur(minute_changeante, inverser=True)
+        for it in range(0, lines_minutes_current_index + 1):
+            # if color_wheel_active and it % 5:
+            #    continue
+            pygame.draw.line(surface, couleur_pour_minutes, lines_minutes[it][0], lines_minutes[it][1], 3)
+
+        # Hours - Drawing whole arc
+        lines_hours_index = 0
+        lines_hours_current_index = int((degree_hours / 360) * len(lines_hours))
+        couleur_pour_hours = second_a_couleur((hour_changeante * 60) / 12)
+        for it in range(0, lines_hours_current_index + 1):
+            # if color_wheel_active and it % 5:
+            #    continue
+            pygame.draw.line(surface, couleur_pour_hours, lines_hours[it][0], lines_hours[it][1], 3)
     else:
-        # Minutes
-        couleur_pour_minutes = seconde_a_couleur(minute_changeante, inverser=True)
-        for it in range(1, 4):
-            degree_secondes_ligne = degree_secondes - (it * 120)
-            degree_secondes_ligne = 360 - abs(
-                degree_secondes_ligne) if degree_secondes_ligne < 0 else degree_secondes_ligne
-            if degree_minutes >= degree_secondes_ligne >= 0:
-                degree_secondes_ligne = math.radians(degree_secondes_ligne - 90)
-                pygame.draw.line(surface, [it * 80, 0, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
-                                 (int((largeur / 2) + math.cos(degree_secondes_ligne) * 115 * size_mult),
-                                  int((hauteur / 2) + math.sin(degree_secondes_ligne) * 115 * size_mult)),
-                                 (int((largeur / 2) + math.cos(degree_secondes_ligne) * 86 * size_mult),
-                                  int((hauteur / 2) + math.sin(degree_secondes_ligne) * 86 * size_mult)),
-                                 int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        # Seconds - Normal runtime drawing
+        lines_seconds_last_black_index = lines_seconds_black_index
+        lines_seconds_last_color_index = lines_seconds_color_index
+        lines_seconds_black_index = int((((second_precise + 3.25) % 60) * len(lines_seconds)) / 60)
+        lines_seconds_color_index = int((((second_precise + 56.75) % 60) * len(lines_seconds)) / 60)
 
-        if not (do_arc_cleanup and minute < 1):
-            pygame.draw.line(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_pour_minutes,
-                             (int((largeur / 2) + math.cos(degree_minute_ligne) * 115 * size_mult),
-                              int((hauteur / 2) + math.sin(degree_minute_ligne) * 115 * size_mult)),
-                             (int((largeur / 2) + math.cos(degree_minute_ligne) * 86 * size_mult),
-                              int((hauteur / 2) + math.sin(degree_minute_ligne) * 86 * size_mult)),
-                             int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        # Black seconds area
+        if lines_seconds_black_index >= lines_seconds_last_black_index:
+            lines_seconds_draw_gap = lines_seconds_black_index - lines_seconds_last_black_index
+        else:
+            lines_seconds_draw_gap = lines_seconds_black_index + (
+                        len(lines_seconds) - lines_seconds_last_black_index - 1)
 
-        # Heures
-        couleur_pour_heures = seconde_a_couleur((heure_changeante * 60) / 12)
-        if degree_heures >= degree_secondes >= 0:
-            pygame.draw.line(surface, [255, 0, 100] if ClockSettings.DEBUG_MODE else couleur_pour_heures,
-                             (int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 80 * size_mult),
-                              int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 80 * size_mult)),
-                             (int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 41 * size_mult),
-                              int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 41 * size_mult)),
-                             int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        if lines_seconds_draw_gap > 1:
+            for it in range(0, lines_seconds_draw_gap + 1):
+                pygame.draw.line(surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else [0, 0, 0],
+                                 lines_seconds[(lines_seconds_last_black_index + it) % (len(lines_seconds) - 1)][0],
+                                 lines_seconds[(lines_seconds_last_black_index + it) % (len(lines_seconds) - 1)][1], 3)
+        else:
+            # Draw single line
+            pygame.draw.line(surface, [0, 0, 0], lines_seconds[lines_seconds_black_index][0],
+                             lines_seconds[lines_seconds_black_index][1], 3)
 
-        if not (do_arc_cleanup and minute < 1):
-            pygame.draw.line(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_pour_heures,
-                             (int((largeur / 2) + math.cos(degree_heures_ligne) * 80 * size_mult),
-                              int((hauteur / 2) + math.sin(degree_heures_ligne) * 80 * size_mult)),
-                             (int((largeur / 2) + math.cos(degree_heures_ligne) * 41 * size_mult),
-                              int((hauteur / 2) + math.sin(degree_heures_ligne) * 41 * size_mult)),
-                             int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
+        # Colored seconds arc
+        if lines_seconds_color_index >= lines_seconds_last_color_index:
+            lines_seconds_draw_gap = lines_seconds_color_index - lines_seconds_last_color_index
+        else:
+            lines_seconds_draw_gap = lines_seconds_color_index + (
+                        len(lines_seconds) - lines_seconds_last_color_index - 1)
 
-    # Couleurs secondes
-    couleur_pour_secondes = seconde_a_couleur(seconde_precise)
+        if lines_seconds_draw_gap > 1:
+            for it in range(0, lines_seconds_draw_gap + 1):
+                pygame.draw.line(surface,
+                                 second_a_couleur(((lines_seconds_last_color_index + it) * 60) / len(lines_seconds)),
+                                 lines_seconds[(lines_seconds_last_color_index + it) % (len(lines_seconds) - 1)][0],
+                                 lines_seconds[(lines_seconds_last_color_index + it) % (len(lines_seconds) - 1)][1], 3)
+        else:
+            # Draw single line
+            pygame.draw.line(surface, second_a_couleur((lines_seconds_color_index * 60) / len(lines_seconds)),
+                             lines_seconds[lines_seconds_color_index][0], lines_seconds[lines_seconds_color_index][1],
+                             3)
 
-    if ClockSettings.LOW_FRAMERATE_MODE or color_wheel_active:
-        pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(111 - degree_secondes),
-                        math.radians(123 - degree_secondes), int(30 * size_mult))
-        pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(111.5 - degree_secondes),
-                        math.radians(123 - degree_secondes), int(30 * size_mult))
-        pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(112 - degree_secondes),
-                        math.radians(123 - degree_secondes), int(30 * size_mult))
-    else:
-        # pygame.draw.line(surface, couleur_pour_secondes,
-        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 110)) * 150 * size_mult),
-        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 110)) * 150 * size_mult)),
-        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 110)) * 120 * size_mult),
-        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 110)) * 120 * size_mult)),
-        #                  int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
-        pygame.draw.arc(surface, couleur_pour_secondes, rect_couleurs_secondes, math.radians(111 - degree_secondes),
-                        math.radians(114 - degree_secondes), int(30 * size_mult))
+        # Minutes - Normal runtime drawing
+        if do_arc_cleanup and minute < 1:
+            lines_minutes_index = 0
+        else:
+            couleur_pour_minutes = [75 + second * 3, 0, 0] if ClockSettings.DEBUG_MODE else second_a_couleur(
+                minute_changeante, inverser=True)
 
-    # Arc secondes (noir)
-    if ClockSettings.LOW_FRAMERATE_MODE:
-        pygame.draw.arc(surface, [255, 0, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                        rect_arc_secondes, math.radians(70 - degree_secondes),
-                        math.radians(80 - degree_secondes), int(34 * size_mult))
-        pygame.draw.arc(surface, [0, 255, 0] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                        rect_arc_secondes, math.radians(70.5 - degree_secondes),
-                        math.radians(80 - degree_secondes), int(34 * size_mult))
-        pygame.draw.arc(surface, [0, 0, 255] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                        rect_arc_secondes, math.radians(71 - degree_secondes),
-                        math.radians(80 - degree_secondes), int(34 * size_mult))
-    else:
-        # pygame.draw.line(surface, couleur_arc_secondes,
-        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 70)) * 151 * size_mult),
-        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 70)) * 151 * size_mult)),
-        #                  (int((largeur / 2) + math.cos(math.radians(degree_secondes - 70)) * 119 * size_mult),
-        #                   int((hauteur / 2) + math.sin(math.radians(degree_secondes - 70)) * 119 * size_mult)),
-        #                  int((3 if ClockSettings.LOW_FRAMERATE_MODE else 2) * size_mult))
-        pygame.draw.arc(surface, [25, 25, 25] if ClockSettings.DEBUG_MODE else couleur_arc_secondes,
-                        rect_arc_secondes, math.radians(70 - degree_secondes),
-                        math.radians(74 - degree_secondes), int(34 * size_mult))
+            pygame.draw.line(surface, couleur_pour_minutes, lines_minutes[lines_minutes_index][0],
+                             lines_minutes[lines_minutes_index][1], 3)
+            lines_minutes_index = lines_minutes_index + 1 if lines_minutes_index < lines_minutes_current_index else 0
+
+            if lines_minutes_current_index != int((degree_minutes / 360) * len(lines_minutes)):
+                lines_minutes_current_index = int((degree_minutes / 360) * len(lines_minutes))
+                pygame.draw.line(surface, couleur_pour_minutes, lines_minutes[lines_minutes_current_index][0],
+                                 lines_minutes[lines_minutes_current_index][1], 3)
+            else:
+                pygame.draw.line(surface, couleur_pour_minutes, lines_minutes[lines_minutes_index][0],
+                                 lines_minutes[lines_minutes_index][1], 3)
+                lines_minutes_index = lines_minutes_index + 1 if lines_minutes_index < lines_minutes_current_index else 0
+
+        # Hours - Normal runtime drawing
+        if do_arc_cleanup and minute < 1:
+            lines_hours_index = 0
+        else:
+            couleur_pour_hours = [0, 0, 75 + second * 3] if ClockSettings.DEBUG_MODE else second_a_couleur(
+                (hour_changeante * 60) / 12)
+
+            if lines_hours_current_index != int((degree_hours / 360) * len(lines_hours)):
+                lines_hours_current_index = int((degree_hours / 360) * len(lines_hours))
+                pygame.draw.line(surface, couleur_pour_hours, lines_hours[lines_hours_current_index][0],
+                                 lines_hours[lines_hours_current_index][1], 3)
+            else:
+                pygame.draw.line(surface, couleur_pour_hours, lines_hours[lines_hours_index][0],
+                                 lines_hours[lines_hours_index][1], 3)
+                lines_hours_index = lines_hours_index + 1 if lines_hours_index < lines_hours_current_index else 0
 
     if refresh_requested:
         draw_middle_circle = True
         refresh_requested = False
+        text_jour_semaine_couleur = get_text_jour_semaine_couleur()
 
     if peek_animating:
         ecran.blit(surface, [peek_rect.left, peek_rect.top], peek_rect)
@@ -2481,16 +2657,16 @@ while en_fonction:
         text_dict['temps']['rect'] = text_dict['temps']['surface'].get_rect(center=((largeur // 2), (hauteur // 2)))
     ecran.blit(text_dict['temps']['surface'], text_dict['temps']['rect'])
 
-    if seconde != text_dict['seconde']['text']:
-        text_dict['seconde']['text'] = seconde
-        text_dict['seconde']['surface'] = font_25.render(' ' + str(seconde) + ' ', True, [255, 255, 255])
-    text_dict['seconde']['rotated_surface'] = pygame.transform.rotozoom(text_dict['seconde']['surface'],
-                                                                        -degree_secondes + (
-                                                                            180 if 45 > seconde_precise > 15 else 0), 1)
-    text_dict['seconde']['rect'] = text_dict['seconde']['rotated_surface'].get_rect(center=(
-        int((largeur / 2) + math.cos(math.radians(degree_secondes - 90)) * 135 * size_mult),
-        int((hauteur / 2) + math.sin(math.radians(degree_secondes - 90)) * 135 * size_mult)))
-    ecran.blit(text_dict['seconde']['rotated_surface'], text_dict['seconde']['rect'])
+    if second != text_dict['second']['text']:
+        text_dict['second']['text'] = second
+        text_dict['second']['surface'] = font_25.render(' ' + str(second) + ' ', True, [255, 255, 255])
+    text_dict['second']['rotated_surface'] = pygame.transform.rotozoom(text_dict['second']['surface'],
+                                                                       -degree_seconds + (
+                                                                           180 if 45 > second_precise > 15 else 0), 1)
+    text_dict['second']['rect'] = text_dict['second']['rotated_surface'].get_rect(center=(
+        int((largeur / 2) + math.cos(math.radians(degree_seconds - 90)) * 135 * size_mult),
+        int((hauteur / 2) + math.sin(math.radians(degree_seconds - 90)) * 135 * size_mult)))
+    ecran.blit(text_dict['second']['rotated_surface'], text_dict['second']['rect'])
 
     if retour_thread['detailed_info'] != text_dict['detailed_info']['text']:
         text_dict['detailed_info']['text'] = retour_thread['detailed_info']
@@ -2523,11 +2699,12 @@ while en_fonction:
             center=text_dict['temperature']['rect'].center)
     ecran.blit(text_dict['temperature']['wiggle_surface'], text_dict['temperature']['wiggle_rect'])
 
-    if retour_thread['weather_icon']:
-        image_rect = weather_icons[retour_thread['weather_icon']].get_rect()
+    weather_icon = retour_thread['weather_icon']
+    if weather_icon:
+        image_rect = weather_icons[weather_icon].get_rect()
         image_rect.centery = text_dict['temperature']['wiggle_rect'].centery
         image_rect.left = text_dict['temperature']['rect'].right + int((5 * size_mult))
-        ecran.blit(weather_icons[retour_thread['weather_icon']], image_rect)
+        ecran.blit(weather_icons[weather_icon], image_rect)
 
     if (retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]) != text_dict['pourcent_pluie']['text']:
         text_dict['pourcent_pluie']['text'] = retour_thread['pourcent_pluie'] or text_anim_frames[text_anim_frame]
@@ -2693,7 +2870,7 @@ while en_fonction:
             text_dict[current_info_text]['surface'] = text_anim_surfaces['17'][text_anim_frame]
 
         center_y = text_dict['pourcent_pluie']['rect'].bottom + (
-                    text_dict[previous_info_text]['rect'].top - text_dict['pourcent_pluie']['rect'].bottom) / 2
+                text_dict[previous_info_text]['rect'].top - text_dict['pourcent_pluie']['rect'].bottom) / 2
         text_dict[current_info_text]['rect'] = text_dict[current_info_text]['surface'].get_rect(center=(0, center_y))
         text_dict[current_info_text]['rect'].left = int(2 * size_mult)
 
@@ -2729,43 +2906,61 @@ while en_fonction:
         text_dict['noms_mois']['rect'].top = int(texte_bottom - (10 * size_mult))
     ecran.blit(text_dict['noms_mois']['surface'], text_dict['noms_mois']['rect'])
 
+    if AnimationLoopSettings.ENABLED:
+        if peek_animating:
+            loop_end_time = maintenant + datetime.timedelta(seconds=loop_time)
+        else:
+            if loop_end_time <= maintenant:
+                loop_end_time = maintenant + datetime.timedelta(seconds=loop_time)
+
+                if not first_frame:
+                    if AnimationLoopSettings.LOOP_BACKWARDS:
+                        loop_backwards = not loop_backwards
+
+                    if not loop_first_time_completed:
+                        loop_first_time_completed = True
+
+        render_loop_image()
+
     # Countdown timer
     if ClockSettings.ENABLE_COUNTDOWN_TIMER:
-        if changement_seconde or first_frame:
+        if changement_second or first_frame:
             # Countdown normal
-            temps_restant = datetime.datetime(2023, 7, 21, 16, 0) - maintenant
+            temps_restant = datetime.datetime(2024, 8, 16, 16, 0) - maintenant
             # Fin de journée
             # temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 
             temps_restant = temps_restant.days * 24 * 3600 + temps_restant.seconds
 
             temps_restant_mins, temps_restant_secs = divmod(temps_restant, 60)
-            temps_restant_heures, temps_restant_mins = divmod(temps_restant_mins, 60)
-            temps_restant_jours, temps_restant_heures = divmod(temps_restant_heures, 24)
+            temps_restant_hours, temps_restant_mins = divmod(temps_restant_mins, 60)
+            temps_restant_jours, temps_restant_hours = divmod(temps_restant_hours, 24)
 
             temps_restant_jours = "%02d" % (temps_restant_jours)
-            temps_restant_heures = "%02d" % (temps_restant_heures)
+            temps_restant_hours = "%02d" % (temps_restant_hours)
             temps_restant_mins = "%02d" % (temps_restant_mins)
             temps_restant_secs = "%02d" % (temps_restant_secs)
 
-            temps_restant = "{}:{}:{}:{}".format(temps_restant_jours, temps_restant_heures, temps_restant_mins,
+            temps_restant = "{}:{}:{}:{}".format(temps_restant_jours, temps_restant_hours, temps_restant_mins,
                                                  temps_restant_secs)
 
         if temps_restant != text_dict['temps_restant']['text']:
             text_dict['temps_restant']['text'] = temps_restant
-            text_dict['temps_restant']['surface'] = font_25.render(temps_restant, True, couleur_fond_inverse)
+            choosen_font = font_17 if AnimationLoopSettings.ENABLED and AnimationLoopSettings.BOTTOM_RIGHT_CORNER else font_25
+            text_dict['temps_restant']['surface'] = choosen_font.render(temps_restant, True, couleur_fond_inverse)
             text_dict['temps_restant']['rect'] = text_dict['temps_restant']['surface'].get_rect()
             text_dict['temps_restant']['rect'].right = int(largeur - (2 * size_mult))
-            text_dict['temps_restant']['rect'].bottom = hauteur
+            text_dict['temps_restant'][
+                'rect'].bottom = loop_rect.top if AnimationLoopSettings.ENABLED and AnimationLoopSettings.BOTTOM_RIGHT_CORNER else hauteur
         ecran.blit(text_dict['temps_restant']['surface'], text_dict['temps_restant']['rect'])
 
-        # if changement_seconde or first_frame:
+        # if changement_second or first_frame:
         # Disco
-        # couleur_titre_countdown = seconde_a_couleur(seconde_precise, couleur_random=True)
+        # couleur_titre_countdown = second_a_couleur(second_precise, couleur_random=True)
         # Smooth
-        couleur_titre_countdown = seconde_a_couleur(seconde_precise, inverser=True)
+        couleur_titre_countdown = second_a_couleur(second_precise, inverser=True)
         # Noel (vert/rouge)
-        # couleur_titre_countdown = [12, 169, 12] if seconde % 2 == 0 else [206, 13, 13]
+        # couleur_titre_countdown = [12, 169, 12] if second % 2 == 0 else [206, 13, 13]
 
         titre_countdown = 'Vacances :D'
 
@@ -2788,27 +2983,15 @@ while en_fonction:
         texte_top = text_dict['titre_countdown']['rect'].top
         text_dict['calculated_fps']['rect'] = text_dict['calculated_fps']['surface'].get_rect()
         text_dict['calculated_fps']['rect'].right = int(largeur - (2 * size_mult))
-        # text_dict['calculated_fps']['rect'].bottom = texte_top if ClockSettings.ENABLE_COUNTDOWN_TIMER else hauteur
-        text_dict['calculated_fps']['rect'].bottom = loop_rect.top
+        if ClockSettings.ENABLE_COUNTDOWN_TIMER:
+            text_dict['calculated_fps']['rect'].bottom = texte_top
+        elif AnimationLoopSettings.ENABLED and AnimationLoopSettings.BOTTOM_RIGHT_CORNER:
+            text_dict['calculated_fps']['rect'].bottom = loop_rect.top
+        else:
+            text_dict['calculated_fps']['rect'].bottom = hauteur
     ecran.blit(text_dict['calculated_fps']['surface'], text_dict['calculated_fps']['rect'])
 
     # render_spinning_image(vitesse_rpm=15)
-
-    if AnimationLoopSettings.ENABLED:
-        if peek_animating:
-            loop_end_time = maintenant + datetime.timedelta(seconds=loop_time)
-        else:
-            if loop_end_time <= maintenant:
-                loop_end_time = maintenant + datetime.timedelta(seconds=loop_time)
-
-                if not first_frame:
-                    if AnimationLoopSettings.LOOP_BACKWARDS:
-                        loop_backwards = not loop_backwards
-
-                    if not loop_first_time_completed:
-                        loop_first_time_completed = True
-
-        render_loop_image()
 
     if retour_thread['weather_animation'] or len(snowflake_list):
         if retour_thread['weather_animation'] == 'neige' or retour_thread['weather_animation'] == 'poudre' or len(
@@ -2822,16 +3005,18 @@ while en_fonction:
             render_raining(drizzle=True)
 
     # -------------------------------------NOTIFICATIONS------------------------------------- #
+    # if minute % 2:
     # notification_active = True
-    # notifications[temps] = ["DEBUG", "TEST"]
+    # notifications[notification_active] = [time.strftime("%H:%M:%S"), text_dict['temperature']['text']]
+    # notification_active = True
+    # notifications[notification_active] = ["DEBUG", "TEST"]
     if notification_active:
-        big_top_text = notifications[temps][0]
-        big_bottom_text = notifications[temps][1]
+        big_top_text = notifications[notification_active][0]
+        big_bottom_text = notifications[notification_active][1]
 
-        if (0.5 > millisec > 0.25) or millisec > 0.75:
-            midi_couleur = [0, 0, 0]
-        else:
-            midi_couleur = seconde_a_couleur(seconde_precise)
+        if abs(maintenant - notification_last_refresh).total_seconds() >= 0.25:
+            midi_couleur = second_a_couleur(second_precise) if midi_couleur == [0, 0, 0] else [0, 0, 0]
+            notification_last_refresh = maintenant
 
         pygame.draw.rect(ecran, midi_couleur, [0, 0, largeur, hauteur])
         midi_texte = font_100.render(big_top_text, True, [255, 255, 255], midi_couleur)
@@ -2871,9 +3056,12 @@ while en_fonction:
         startup_complete = True
 
     frame_counter += 1
-    if changement_seconde:
-        if frame_counter < 15 and retour_thread['thread_en_cours']:
-            loop_wait_for_data_thread = True
+    if changement_second:
+        if not loop_animation_loaded:
+            if frame_counter < 5 and retour_thread['thread_en_cours']:
+                loop_wait_for_data_thread = True
+            elif frame_counter > 10 and retour_thread['thread_en_cours']:
+                loop_wait_for_data_thread = False
 
         if not toggle_menu and not color_wheel_active:
             pygame.mouse.set_visible(False)
@@ -2912,7 +3100,7 @@ while peek_radius <= peek_radius_limit:
     peek_status = peek_status + (duree_last_frame if duree_last_frame <= 0.05 else 0.05)
 
     peek_radius = int(peek_status * 250 * size_mult)
-    peek_rect = pygame.draw.circle(peek_surface, [128, 128, 128], [position_souris[0], position_souris[1]],
+    peek_rect = pygame.draw.circle(peek_surface, loaded_color, [position_souris[0], position_souris[1]],
                                    peek_radius + int(5 * size_mult))
     pygame.draw.circle(peek_surface, [100, 50, 0], [position_souris[0], position_souris[1]], peek_radius)
     ecran.set_clip(peek_rect)
@@ -2982,7 +3170,8 @@ if startup_complete:
             activity.overridePendingTransition(0, 0)
 
         activity.overridePendingTransition(0, 0)
-    else:
+    elif os.name != 'nt':
+        os.system('pkill -9 -f "python3 .*/myclock.py$"')
         os.system('sudo pkill -9 -f "python3 .*/myclock.py$"')
 else:
     # time.sleep(1)
@@ -2992,6 +3181,7 @@ else:
         # GPIO.setmode(GPIO.BOARD)
         # GPIO.setup(23, GPIO.OUT)
         # GPIO.output(23, 1)
+        os.system("reboot")
         os.system("sudo reboot")
         time.sleep(5)
     except Exception:
