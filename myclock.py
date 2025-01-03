@@ -3,9 +3,9 @@
 class ClockSettings(object):
     ENABLE_COUNTDOWN_TIMER = False
     DEBUG_MODE = False
+    RADAR_MODE = True  # Radar mode helps to show how colors are updated for minutes and hours arcs. Enabled if DEBUG_MODE is True.
     BACKGROUND_COLOR = [0, 0, 0]
     FRAMERATE = None  # None = unlimited fps
-    LOW_FRAMERATE_MODE = False
     FONT = "moonget-fixed.ttf"
     ENABLE_LOADING_ANIMATION = False
     LOADING_ANIMATION_SELECTION = 'peek'  # Choices: progress, peek, peek_lite
@@ -41,6 +41,8 @@ class DataSettings(object):
     FETCH_RELAIS_DATA = True
     FETCH_HYDROMETRIC_DATA = True
     SHOW_MINING_INFO = True
+    DO_GEOLOCATION = False
+    FORECAST_CITY_ID = 's0000620'
 
 
 class WeatherSettings(object):
@@ -972,6 +974,10 @@ def render_spinning_image(vitesse_rpm=33):
     ecran.blit(rotated_surface, rect_image)
 
 
+def load_weather_icon(index):
+    pass
+
+
 def load_loop_image(index):
     global loop_images
     global status_loading_image
@@ -1381,6 +1387,14 @@ if not ClockSettings.ENABLE_LOADING_ANIMATION:
 else:
     ecran = pygame.display.set_mode((1, 1), pygame.NOFRAME)
     lift_loading_master = True
+
+if ClockSettings.DEBUG_MODE:
+    # Show debug label on splash screen in debug mode
+    pygame.font.init()
+    font_40 = pygame.font.Font(pygame.font.get_default_font(), int(20 * size_mult))
+    texte = font_40.render("DEBUG MODE", True, [255, 255, 255])
+    ecran.blit(texte, [0, 0])
+    pygame.display.update()
 
 if ClockSettings.ANDROID_MODE:
     try:
@@ -2089,9 +2103,9 @@ retour_thread = {'temperature': ["##,#" + '\N{DEGREE SIGN}' + "C",
                  'fetching_animation': " ",
                  'thread_en_cours': False,
                  'weather_animation': '',
-                 'city_id': 's0000620',
-                 'city_name': 'Québec',
-                 'geolocate_success': False}
+                 'city_id': DataSettings.FORECAST_CITY_ID,
+                 'city_name': 'Chargement...',
+                 'geolocate_success': not DataSettings.DO_GEOLOCATION}
 
 meteo_update_recent = True
 
@@ -2295,7 +2309,7 @@ while en_fonction:
                         pygame.mouse.set_visible(False)
 
                         if not retour_thread['thread_en_cours']:
-                            retour_thread['geolocate_success'] = False
+                            retour_thread['geolocate_success'] = not DataSettings.DO_GEOLOCATION
                             Thread(target=get_data, args=(retour_thread, True), daemon=True).start()
                     elif color_switch_rect.collidepoint(position_souris):
                         # changer couleur
@@ -2421,6 +2435,9 @@ while en_fonction:
 
     if do_arc_cleanup and minute < 1 or debug_arc_cleanup:
         if changement_minute:
+            # Hold data thread until animation is over to help performance
+            meteo_update_recent = True
+
             num_jour_semaine, num_jour, num_mois, centre_date = get_date_et_alignement()
             text_dict['noms_mois']['text'] = 'update me'
             text_dict['num_jour']['text'] = 'update me'
@@ -2437,6 +2454,7 @@ while en_fonction:
         if arc_cleanup_status >= cleanup_size:
             arc_cleanup_status = (2 * size_mult)
             do_arc_cleanup = False
+            meteo_update_recent = False
 
             if debug_arc_cleanup:
                 arc_cleanup_color = [0, (second_precise % 10) * 25, 0]
@@ -2606,8 +2624,9 @@ while en_fonction:
         if do_arc_cleanup and minute < 1:
             lines_minutes_index = 0
         else:
-            couleur_pour_minutes = [75 + second * 3, 0, 0] if ClockSettings.DEBUG_MODE else second_a_couleur(
-                minute_changeante, inverser=True)
+            couleur_pour_minutes = second_a_couleur(second_precise, inverser=True) if (
+                        ClockSettings.DEBUG_MODE or ClockSettings.RADAR_MODE) else second_a_couleur(minute_changeante,
+                                                                                                    inverser=True)
 
             pygame.draw.line(surface, couleur_pour_minutes, lines_minutes[lines_minutes_index][0],
                              lines_minutes[lines_minutes_index][1], 3)
@@ -2626,7 +2645,8 @@ while en_fonction:
         if do_arc_cleanup and minute < 1:
             lines_hours_index = 0
         else:
-            couleur_pour_hours = [0, 0, 75 + second * 3] if ClockSettings.DEBUG_MODE else second_a_couleur(
+            couleur_pour_hours = second_a_couleur(second_precise) if (
+                        ClockSettings.DEBUG_MODE or ClockSettings.RADAR_MODE) else second_a_couleur(
                 (hour_changeante * 60) / 12)
 
             if lines_hours_current_index != int((degree_hours / 360) * len(lines_hours)):
@@ -2926,7 +2946,7 @@ while en_fonction:
     if ClockSettings.ENABLE_COUNTDOWN_TIMER:
         if changement_second or first_frame:
             # Countdown normal
-            temps_restant = datetime.datetime(2024, 8, 16, 16, 0) - maintenant
+            temps_restant = datetime.datetime(2024, 11, 22, 10, 0) - maintenant
             # Fin de journée
             # temps_restant = datetime.datetime(maintenant.year, maintenant.month, maintenant.day, 15, 59) - maintenant
 
@@ -2962,7 +2982,7 @@ while en_fonction:
         # Noel (vert/rouge)
         # couleur_titre_countdown = [12, 169, 12] if second % 2 == 0 else [206, 13, 13]
 
-        titre_countdown = 'Vacances :D'
+        titre_countdown = 'Trailer 2 news?'
 
         if titre_countdown != text_dict['titre_countdown']['text'] or couleur_titre_countdown != \
                 text_dict['titre_countdown']['color']:
@@ -3170,7 +3190,7 @@ if startup_complete:
             activity.overridePendingTransition(0, 0)
 
         activity.overridePendingTransition(0, 0)
-    elif os.name != 'nt':
+    else:
         os.system('pkill -9 -f "python3 .*/myclock.py$"')
         os.system('sudo pkill -9 -f "python3 .*/myclock.py$"')
 else:
